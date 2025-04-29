@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "771380337178",
+    "project_id": "smartmedia-d9750",
+    "storage_bucket": "smartmedia-d9750.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:771380337178:android:1d8b04a66a71d1b5bc4fa3",
+        "android_client_info": {
+          "package_name": "com.example.smartmedia_campaign_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkkmh-mNCK_-jk3Ymm4d3nK53xPNUPE8o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
