@@ -1,4 +1,3 @@
-
 import 'package:smartmedia_campaign_manager/core/utils/custom_snackbar_widget.dart';
 import 'package:smartmedia_campaign_manager/features/home/presentation/pages/landing_page.dart';
 import 'package:flutter/material.dart';
@@ -15,20 +14,12 @@ class Wrapper extends StatefulWidget {
 }
 
 class _WrapperState extends State<Wrapper> {
+  bool _dialogShown = false;
+
   @override
   void initState() {
     super.initState();
-    // Schedule the auth check after build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkInitialAuth();
-    });
-  }
-
-  void _checkInitialAuth() {
-    final authBloc = context.read<AuthBloc>();
-    if (!authBloc.authUseCases.isUserSignedIn()) {
-      showSignupDialog(context);
-    }
+    // The CheckAuthStatusEvent is already called in AuthBloc's constructor
   }
 
   @override
@@ -52,10 +43,15 @@ class _WrapperState extends State<Wrapper> {
             backgroundColor: Colors.green,
           );
         }
+
+        if (state is Unauthenticated && !_dialogShown) {
+          _dialogShown = true; // Prevent multiple dialogs
+          Future.microtask(() => showSignupDialog(context));
+        }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
-          if (state is AuthLoading) {
+          if (state is AuthLoading || state is AuthInitial) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
