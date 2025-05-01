@@ -22,7 +22,7 @@ class LandingPageState extends State<LandingPage> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const CampaignsScreen(),
+    const CampaignScreen(),
     const MediaLibraryScreen(),
     const ClientsScreen(),
     const ReportsScreen(),

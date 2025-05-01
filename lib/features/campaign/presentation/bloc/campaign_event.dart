@@ -1,8 +1,10 @@
-part of 'campaign_bloc.dart';
+import '../../domain/entities/campaign.dart';
 
-abstract class CampaignEvent extends Equatable {
-  const CampaignEvent();
+abstract class CampaignEvent {}
 
-  @override
-  List<Object> get props => [];
+class LoadCampaigns extends CampaignEvent {}
+
+class AddCampaign extends CampaignEvent {
+  final Campaign campaign;
+  AddCampaign(this.campaign);
 }

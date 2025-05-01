@@ -33,6 +33,7 @@ dependencies:
   flutter_animate: ^4.5.2
   image_picker: ^1.1.2
   flutterfire_cli: ^0.1.1+2
+  get_it: ^8.0.3
   
 
 dev_dependencies:
