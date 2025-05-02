@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/presentation/pages/campaign_details_screen.dart';
 import '../../domain/entities/campaign.dart';
 
 class CampaignCard extends StatelessWidget {
@@ -47,250 +48,263 @@ class CampaignCard extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      child: Card(
-        elevation: 4,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Campaign Image
-            Container(
-              height: 120,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: CachedNetworkImageProvider(
-                    campaign.clientLogoUrl ??
-                        'https://via.placeholder.com/600x400?text=${campaign.name}',
-                  ),
-                  fit: BoxFit.cover,
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.4), Colors.transparent],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Status chip in top-left corner
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Menu in top-right corner
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        shape: BoxShape.circle,
-                      ),
-                      child: PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert, color: Colors.black87),
-                        onSelected: (value) {
-                          if (value == 'view' && onView != null) {
-                            onView!();
-                          } else if (value == 'edit' && onEdit != null) {
-                            onEdit!();
-                          } else if (value == 'delete' && onDelete != null) {
-                            onDelete!();
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'view',
-                            child: Row(
-                              children: [
-                                Icon(Icons.visibility, size: 18),
-                                SizedBox(width: 8),
-                                Text('View Details'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, size: 18),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Delete', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CampaignDetailsScreen(campaign: campaign),
             ),
-
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Campaign name
-                    Text(
-                      campaign.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
+          );
+        },
+        child: Card(
+          elevation: 4,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Campaign Image
+              Hero(
+                   tag: 'campaign-hero-${campaign.id}',
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: CachedNetworkImageProvider(
+                        campaign.clientLogoUrl ??
+                            'https://via.placeholder.com/600x400?text=${campaign.name}',
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      fit: BoxFit.cover,
                     ),
-                    SizedBox(height: 8),
-                    
-                    // Description
-                    Text(
-                      campaign.description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.black.withOpacity(0.4), Colors.transparent],
                     ),
-                    
-                    Spacer(),
-                    
-                    // Date information
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                        SizedBox(width: 8),
-                        Expanded(
+                  ),
+                  child: Stack(
+                    children: [
+                      // Status chip in top-left corner
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: Text(
-                            '${formatter.format(campaign.startDate)} - ${formatter.format(campaign.endDate)}',
+                            statusText,
                             style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[800],
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    
-                    SizedBox(height: 12),
-                    
-                    // Progress bar
-                    if (isActive) _buildProgressIndicator(campaign.startDate, campaign.endDate),
-                    
-                    if (isUpcoming) 
+                      ),
+                      // Menu in top-right corner
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            shape: BoxShape.circle,
+                          ),
+                          child: PopupMenuButton<String>(
+                            icon: Icon(Icons.more_vert, color: Colors.black87),
+                            onSelected: (value) {
+                              if (value == 'view' && onView != null) {
+                                onView!();
+                              } else if (value == 'edit' && onEdit != null) {
+                                onEdit!();
+                              } else if (value == 'delete' && onDelete != null) {
+                                onDelete!();
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'view',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.visibility, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('View Details'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, size: 18, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Campaign name
+                      Text(
+                        campaign.name,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 8),
+                      
+                      // Description
+                      Text(
+                        campaign.description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      
+                      Spacer(),
+                      
+                      // Date information
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 16, color: Colors.blue[600]),
+                          Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                           SizedBox(width: 8),
-                          Text(
-                            'Starts in ${campaign.startDate.difference(now).inDays} days',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.blue[600],
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Text(
+                              '${formatter.format(campaign.startDate)} - ${formatter.format(campaign.endDate)}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[800],
+                              ),
                             ),
                           ),
                         ],
                       ),
                       
-                    if (isPast)
-                      Row(
-                        children: [
-                          Icon(Icons.check_circle_outline, size: 16, color: Colors.grey[600]),
-                          SizedBox(width: 8),
-                          Text(
-                            'Ended ${now.difference(campaign.endDate).inDays} days ago',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
+                      SizedBox(height: 12),
+                      
+                      // Progress bar
+                      if (isActive) _buildProgressIndicator(campaign.startDate, campaign.endDate),
+                      
+                      if (isUpcoming) 
+                        Row(
+                          children: [
+                            Icon(Icons.access_time, size: 16, color: Colors.blue[600]),
+                            SizedBox(width: 8),
+                            Text(
+                              'Starts in ${campaign.startDate.difference(now).inDays} days',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.blue[600],
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
+                          ],
+                        ),
+                        
+                      if (isPast)
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 16, color: Colors.grey[600]),
+                            SizedBox(width: 8),
+                            Text(
+                              'Ended ${now.difference(campaign.endDate).inDays} days ago',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Action buttons
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: onView,
+                        icon: Icon(Icons.visibility, size: 18),
+                        label: Text('View'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.black87,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
                           ),
-                        ],
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: Colors.grey.withOpacity(0.3),
+                    ),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: onEdit,
+                        icon: Icon(Icons.edit, size: 18),
+                        label: Text('Edit'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.black87,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            
-            // Action buttons
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: onView,
-                      icon: Icon(Icons.visibility, size: 18),
-                      label: Text('View'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.black87,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 24,
-                    color: Colors.grey.withOpacity(0.3),
-                  ),
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: onEdit,
-                      icon: Icon(Icons.edit, size: 18),
-                      label: Text('Edit'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.black87,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -27,7 +27,7 @@ class CampaignDetailsScreen extends StatelessWidget {
             expandedHeight: 300,
             pinned: true,
             flexibleSpace: Hero(
-              tag: 'campaign-${campaign.id}',
+               tag: 'campaign-hero-${campaign.id}',
               child: FlexibleSpaceBar(
                 background: CachedNetworkImage(
                   imageUrl: campaign.clientLogoUrl ??

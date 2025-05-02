@@ -9,6 +9,7 @@ import 'package:smartmedia_campaign_manager/features/home/presentation/pages/das
 import 'package:smartmedia_campaign_manager/features/home/presentation/widgets/side_bar.dart';
 import 'package:smartmedia_campaign_manager/features/media_library/presentation/pages/media_library_screen.dart';
 import 'package:smartmedia_campaign_manager/features/reports/presentation/pages/reports_screen.dart';
+import 'package:smartmedia_campaign_manager/features/stores/presentation/pages/stores_screen.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -23,7 +24,9 @@ class LandingPageState extends State<LandingPage> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const CampaignScreen(),
+      const StoresScreen(),
     const MediaLibraryScreen(),
+ 
     const ClientsScreen(),
     const ReportsScreen(),
   ];
