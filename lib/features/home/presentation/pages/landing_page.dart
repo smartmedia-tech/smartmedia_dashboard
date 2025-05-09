@@ -1,10 +1,15 @@
 import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/presentation/pages/campaigns_screen.dart';
+import 'package:smartmedia_campaign_manager/features/clients/presentation/pages/clients_screen.dart';
 import 'package:smartmedia_campaign_manager/features/home/presentation/widgets/custom_appBar.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smartmedia_campaign_manager/features/home/presentation/pages/dashBoard-screen.dart';
 import 'package:smartmedia_campaign_manager/features/home/presentation/widgets/side_bar.dart';
+import 'package:smartmedia_campaign_manager/features/media_library/presentation/pages/media_library_screen.dart';
+import 'package:smartmedia_campaign_manager/features/reports/presentation/pages/reports_screen.dart';
+import 'package:smartmedia_campaign_manager/features/stores/presentation/pages/stores_screen.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -18,13 +23,12 @@ class LandingPageState extends State<LandingPage> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    // const MerchantsScreen(),
-    // const OrdersScreen(),
-    // const CategoriesScreen(),
-    // const BrandsScreen(),
-    // const RequestsScreen(),
-    // const ProductsScreen(),
-    // const AdminPromotionsScreen()
+    const CampaignScreen(),
+      const StoresScreen(),
+    const MediaLibraryScreen(),
+ 
+    const ClientsScreen(),
+    const ReportsScreen(),
   ];
 
   void _onItemSelected(int index) {

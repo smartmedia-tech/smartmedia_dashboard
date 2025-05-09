@@ -1,6 +1,6 @@
 import 'package:smartmedia_campaign_manager/features/auth/data/models/user_model.dart';
 import 'package:smartmedia_campaign_manager/features/auth/domain/usecases/auth_usecases.dart';
-import 'package:smartmedia_campaign_manager/wrapper/wrapper.dart';
+import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/logout_button_widget.dart';
 import 'package:flutter/material.dart';
 
 class ProfileDialog extends StatefulWidget {
@@ -12,7 +12,7 @@ class ProfileDialog extends StatefulWidget {
   });
 
   @override
-  _ProfileDialogState createState() => _ProfileDialogState();
+  State<ProfileDialog> createState() => _ProfileDialogState();
 }
 
 class _ProfileDialogState extends State<ProfileDialog> {
@@ -40,29 +40,6 @@ class _ProfileDialogState extends State<ProfileDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error fetching user details: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _logout() async {
-    try {
-      await widget.authUseCases.logout();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const Wrapper()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logout failed: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),
@@ -237,15 +214,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        TextButton.icon(
-                          icon: const Icon(Icons.logout, size: 20),
-                          label: const Text('Logout'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          onPressed: _logout,
-                        ),
+                        const LogOutButton()
                       ],
                     ),
                   ),
