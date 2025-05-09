@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:smartmedia_campaign_manager/core/utils/colors.dart';
 
@@ -58,7 +57,7 @@ class AppTheme {
     brightness: Brightness.dark,
     primaryColor: AppColors.primaryColorDark,
     scaffoldBackgroundColor: AppColors.backgroundDark,
-    colorScheme: ColorScheme.dark(
+    colorScheme: const ColorScheme.dark(
       primary: AppColors.primaryColorDark,
       secondary: AppColors.secondaryColorDark,
       tertiary: AppColors.accentColorDark,
@@ -67,7 +66,7 @@ class AppTheme {
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: AppColors.textPrimaryDark,
-      surfaceContainerHighest: const Color(0xFF2C2C2C),
+      surfaceContainerHighest: Color(0xFF2C2C2C),
       inverseSurface: Colors.white,
     ),
     textTheme: const TextTheme(

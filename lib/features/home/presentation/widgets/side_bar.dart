@@ -1,9 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
+import 'package:smartmedia_campaign_manager/core/utils/colors.dart';
+import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/logout_button_widget.dart';
 
 class SideBar extends StatefulWidget {
   final int selectedIndex;
@@ -21,202 +22,449 @@ class SideBar extends StatefulWidget {
   State<SideBar> createState() => _SideBarState();
 }
 
-class _SideBarState extends State<SideBar> {
-  bool isExpanded = false;
+class _SideBarState extends State<SideBar> with SingleTickerProviderStateMixin {
+  bool isExpanded = true;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
 
   final menuItems = [
-    {'title': 'Dashboard', 'icon': FontAwesomeIcons.tachometerAlt},
-    {'title': 'Merchants', 'icon': FontAwesomeIcons.store},
-    {'title': 'Orders', 'icon': FontAwesomeIcons.boxOpen},
-    {'title': 'Categories', 'icon': FontAwesomeIcons.thList},
-    {'title': 'Brands', 'icon': FontAwesomeIcons.tags},
-    {'title': ' Drink Requests', 'icon': FontAwesomeIcons.clipboardList},
-    {'title': 'Products', 'icon': FontAwesomeIcons.productHunt},
-    {'title': 'Promotions', 'icon': FontAwesomeIcons.productHunt},
+    {'title': 'Dashboard', 'icon': FontAwesomeIcons.gauge},
+    {'title': 'Campaigns', 'icon': FontAwesomeIcons.bullhorn},
+      {'title': 'Stores', 'icon': FontAwesomeIcons.store},
+    {'title': 'Media', 'icon': FontAwesomeIcons.photoFilm},
+  
+    {'title': 'Clients', 'icon': FontAwesomeIcons.users},
+    {'title': 'Reports', 'icon': FontAwesomeIcons.chartLine},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOutCubic,
+    );
+    if (!isExpanded) {
+      _animationController.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        _animationController.reverse();
+      } else {
+        _animationController.forward();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeController = Provider.of<ThemeController>(context);
-    final isDarkMode = themeController.isDarkMode;
+    final isDark = themeController.isDarkMode;
 
     return widget.isMobile
-        ? _buildMobileDrawer(context, isDarkMode)
-        : _buildDesktopSidebar(isDarkMode, themeController);
+        ? _buildMobileDrawer(context, isDark)
+        : _buildDesktopSidebar(isDark);
   }
 
-  Widget _buildDesktopSidebar(
-      bool isDarkMode, ThemeController themeController) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => isExpanded = true),
-      onExit: (_) => setState(() => isExpanded = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: isExpanded ? 250 : 70,
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isDarkMode ? Colors.black12 : Colors.white,
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 8,
-              color: Colors.black12,
-              offset: Offset(2, 0),
-            )
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildToggleButton(isDarkMode),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                children: menuItems.asMap().entries.map((entry) {
-                  return _buildAnimatedListTile(
-                      entry.key, entry.value, isDarkMode);
-                }).toList(),
+  Widget _buildDesktopSidebar(bool isDark) {
+    final bgColor = isDark ? const Color(0xFF1A1A2E) : Colors.white;
+    const accentColor = Color(0xFF3E64FF);
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final width =
+            Tween<double>(begin: 220.0, end: 70.0).evaluate(_animation);
+
+        return Container(
+          width: width,
+          decoration: BoxDecoration(
+            color: bgColor,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleButton(bool isDarkMode) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      height: 40,
-      width: isExpanded ? 200 : 40,
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.white.withOpacity(0.1)
-            : Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(isExpanded ? 10 : 20),
-      ),
-      child: IconButton(
-        icon: FaIcon(
-          isExpanded
-              ? FontAwesomeIcons.chevronLeft
-              : FontAwesomeIcons.chevronRight,
-          color: Colors.red,
-        ),
-        onPressed: () => setState(() => isExpanded = !isExpanded),
-      ),
-    );
-  }
-
-  Widget _buildAnimatedListTile(
-      int idx, Map<String, dynamic> item, bool isDarkMode) {
-    final isSelected = widget.selectedIndex == idx;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: isExpanded ? 16 : 8,
-          vertical: 0,
-        ),
-        leading: FaIcon(
-          item['icon'],
-          color: isSelected
-              ? Colors.red
-              : (isDarkMode ? Colors.white70 : Colors.black87),
-          size: 22,
-        ),
-        title: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: isExpanded ? 1.0 : 0.0,
-          child: isExpanded
-              ? Text(
-                  item['title'],
-                  style: GoogleFonts.poppins(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: isSelected
-                        ? Colors.red
-                        : (isDarkMode ? Colors.white70 : Colors.black87),
-                  ),
-                )
-              : null,
-        ),
-        onTap: () => widget.onItemSelected(idx),
-        selected: isSelected,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        selectedTileColor: Colors.red.withOpacity(0.1),
-        hoverColor: Colors.grey.withOpacity(0.1),
-      ),
-    );
-  }
-
-  Widget _buildMobileDrawer(BuildContext context, bool isDarkMode) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: Column(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Colors.red,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
+          // Logo and toggle
+          Container(
+            height: 70,
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Row(
+              mainAxisAlignment: isExpanded
+                  ? MainAxisAlignment.spaceBetween
+                  : MainAxisAlignment.center,
+              children: [
+                if (isExpanded)
+                  Row(
+                    children: [
+                      const Icon(
+                        FontAwesomeIcons.bolt,
+                        color: Color(0xFF3E64FF),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'SmartMedia',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  const Icon(
+                    FontAwesomeIcons.bolt,
+                    color: Color(0xFF3E64FF),
+                    size: 20,
+                  ),
+                if (isExpanded)
+                  IconButton(
+                    onPressed: _toggleExpanded,
+                    icon: AnimatedRotation(
+                      turns: isExpanded ? 0 : 0.5,
+                      duration: const Duration(milliseconds: 350),
+                      child: const Icon(
+                        Icons.keyboard_double_arrow_left,
+                        color: Color(0xFF3E64FF),
+                        size: 20,
+                      ),
+                    ),
+                  ),
               ],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const FaIcon(
-                  FontAwesomeIcons.userShield,
-                  color: Colors.white,
-                  size: 48,
+          ),
+
+          AnimatedOpacity(
+            opacity: isExpanded ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Divider(height: 1, thickness: 0.5),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Menu Items
+          Expanded(
+            child: ListView.builder(
+              itemCount: menuItems.length,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemBuilder: (context, index) {
+                final item = menuItems[index];
+                final isSelected = widget.selectedIndex == index;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      onTap: () => widget.onItemSelected(index),
+                      borderRadius: BorderRadius.circular(12),
+                      splashColor: accentColor.withOpacity(0.1),
+                      hoverColor: accentColor.withOpacity(0.05),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isExpanded ? 16 : 0,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: isSelected
+                              ? LinearGradient(
+                                  colors: [
+                                    accentColor.withOpacity(0.1),
+                                    accentColor.withOpacity(0.05),
+                                  ],
+                                )
+                              : null,
+                          border: isSelected
+                              ? Border.all(
+                                  color: accentColor.withOpacity(0.3),
+                                  width: 1,
+                                )
+                              : null,
+                        ),
+                        child: isExpanded
+                            ? Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? accentColor
+                                          : accentColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      item['icon'] as IconData?,
+                                      size: 16,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : accentColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      item['title'] as String,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? accentColor
+                                            : textColor,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: accentColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : Center(
+                                child: Tooltip(
+                                  message: item['title'] as String,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? accentColor
+                                          : accentColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      item['icon'] as IconData?,
+                                      size: 16,
+                                      color: isSelected
+                                          ? AppColors.background
+                                          : accentColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Toggle button when collapsed
+          if (!isExpanded)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: IconButton(
+                onPressed: _toggleExpanded,
+                icon: const Icon(
+                  Icons.keyboard_double_arrow_right,
+                  color: Color(0xFF3E64FF),
+                  size: 20,
                 ),
-                const SizedBox(height: 12),
+                tooltip: "Expand menu",
+              ),
+            ),
+
+          // logout button - only visible when expanded
+          if (isExpanded)
+            const Padding(padding: EdgeInsets.all(6.0), child: LogOutButton()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileDrawer(BuildContext context, bool isDark) {
+    return Drawer(
+      backgroundColor: AppColors.accentColor,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.accentColor,
+                  AppColors.accentColor.withOpacity(0.8),
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    FontAwesomeIcons.bolt,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Text(
-                  'Admin Panel',
+                  'SmartMedia',
                   style: GoogleFonts.poppins(
                     color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          ...menuItems.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final item = entry.value;
-            final isSelected = widget.selectedIndex == idx;
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: menuItems.length,
+              itemBuilder: (context, index) {
+                final item = menuItems[index];
+                final isSelected = widget.selectedIndex == index;
 
-            return ListTile(
-              leading: FaIcon(
-                item['icon'] as IconData,
-                color: isSelected
-                    ? Colors.red
-                    : (isDarkMode ? Colors.white70 : Colors.black87),
-              ),
-              title: Text(
-                item['title'] as String,
-                style: GoogleFonts.poppins(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? Colors.red
-                      : (isDarkMode ? Colors.white70 : Colors.black87),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onItemSelected(index);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      splashColor: AppColors.accentColor.withOpacity(0.1),
+                      hoverColor: AppColors.accentColor.withOpacity(0.05),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: isSelected
+                              ? LinearGradient(
+                                  colors: [
+                                    AppColors.accentColor.withOpacity(0.1),
+                                    AppColors.accentColor.withOpacity(0.05),
+                                  ],
+                                )
+                              : null,
+                          border: isSelected
+                              ? Border.all(
+                                  color: AppColors.accentColor.withOpacity(0.3),
+                                  width: 1,
+                                )
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.accentColor
+                                    : AppColors.accentColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                item['icon'] as IconData?,
+                                size: 16,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.accentColor,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              item['title'] as String,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? AppColors.accentColor
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (isSelected)
+                              const Icon(
+                                Icons.circle,
+                                size: 8,
+                                color: AppColors.accentColor,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Footer with logout
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey.withOpacity(0.1),
                 ),
               ),
-              onTap: () {
-                Navigator.pop(context);
-                widget.onItemSelected(idx);
-              },
-              selected: isSelected,
-              selectedTileColor: Colors.red.withOpacity(0.1),
-            );
-          }),
-          // _buildThemeSwitch(
-          //     Provider.of<ThemeController>(context, listen: false), isDarkMode),
+            ),
+            child: const Row(
+              children: [LogOutButton()],
+            ),
+          ),
         ],
       ),
     );

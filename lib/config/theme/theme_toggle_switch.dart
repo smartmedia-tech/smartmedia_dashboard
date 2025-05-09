@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
