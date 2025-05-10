@@ -28,13 +28,12 @@ class _CampaignFormDialogState extends State<CampaignFormDialog> {
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
   late TextEditingController _formCampaignLogoController;
-  CampaignStatus _status =
-      CampaignStatus.draft;
+  CampaignStatus _status = CampaignStatus.draft;
   bool _isLoading = false;
   bool _isUploading = false;
   File? _imageFile;
   String? _imageUrl;
-  final ImagePicker _picker = ImagePicker();
+  // final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -47,8 +46,7 @@ class _CampaignFormDialogState extends State<CampaignFormDialog> {
         DateTime.now().add(const Duration(days: 30));
     _imageUrl = widget.campaign?.clientLogoUrl;
     _formCampaignLogoController = TextEditingController(text: _imageUrl ?? '');
-    _status =
-        widget.campaign?.status ?? CampaignStatus.draft;
+    _status = widget.campaign?.status ?? CampaignStatus.draft;
   }
 
   @override

@@ -8,12 +8,14 @@ class CampaignCard extends StatelessWidget {
   final Campaign campaign;
   final Function(String) onDelete;
   final Function(Campaign) onEdit;
+  final Function(Campaign) onViewDetails;
 
   const CampaignCard({
     super.key,
     required this.campaign,
     required this.onDelete,
     required this.onEdit,
+    required this.onViewDetails,
   });
 
   @override
@@ -33,7 +35,7 @@ class CampaignCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: InkWell(
-          onTap: () => _showDetails(context),
+          onTap: () => onViewDetails(campaign),
           child: Stack(
             children: [
               // Background image
@@ -98,11 +100,57 @@ class CampaignCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        IconButton(
+                        // Dropdown menu
+                        PopupMenuButton<String>(
                           icon:
                               const Icon(Icons.more_vert, color: Colors.white),
-                          onPressed: () => _showMenu(context),
                           tooltip: 'Actions',
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'view',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.visibility, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('View Details'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete,
+                                      size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete',
+                                      style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'view') {
+                              onViewDetails(campaign);
+                            } else if (value == 'edit') {
+                              onEdit(campaign);
+                            } else if (value == 'delete') {
+                              onDelete(campaign.id);
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -198,98 +246,6 @@ class CampaignCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(3),
         ),
       ],
-    );
-  }
-
-  void _showMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.edit),
-            title: const Text('Edit'),
-            onTap: () {
-              Navigator.pop(context);
-              onEdit(campaign);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text('Delete', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pop(context);
-              onDelete(campaign.id);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(campaign.name),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: CachedNetworkImage(
-                  imageUrl: campaign.clientLogoUrl ??
-                      getPlaceholderUrl(campaign.name),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                campaign.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 8),
-              _buildDetailRow(
-                  'Status', campaign.status.toString().split('.').last),
-              _buildDetailRow(
-                  'Start Date', DateFormat.yMMMd().format(campaign.startDate)),
-              _buildDetailRow(
-                  'End Date', DateFormat.yMMMd().format(campaign.endDate)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value)),
-        ],
-      ),
     );
   }
 }

@@ -8,12 +8,14 @@ class CampaignDetailsScreen extends StatelessWidget {
   final Campaign campaign;
   final Function(Campaign) onEdit;
   final Function(String) onDelete;
+  final VoidCallback onBack;
 
   const CampaignDetailsScreen({
     super.key,
     required this.campaign,
     required this.onEdit,
     required this.onDelete,
+    required this.onBack,
   });
 
   @override
@@ -25,12 +27,32 @@ class CampaignDetailsScreen extends StatelessWidget {
         now.isAfter(campaign.startDate) && now.isBefore(campaign.endDate);
     final dateFormatter = DateFormat.yMMMd();
 
-    return Dialog(
-      backgroundColor: Colors.white,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Campaign Details',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: onBack,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Campaign',
+            onPressed: () => onEdit(campaign),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            tooltip: 'Delete Campaign',
+            onPressed: () => onDelete(campaign.id),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -50,7 +72,8 @@ class CampaignDetailsScreen extends StatelessWidget {
                     ),
                     errorWidget: (context, url, error) => Container(
                       color: Colors.grey[200],
-                      child: const Icon(Icons.business, size: 64, color: Colors.grey),
+                      child: const Icon(Icons.business,
+                          size: 64, color: Colors.grey),
                     ),
                   ),
                   // Gradient overlay for text visibility
@@ -111,125 +134,108 @@ class CampaignDetailsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Close button
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.black38,
-                        padding: const EdgeInsets.all(8),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
                 ],
               ),
             ),
 
             // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Description
-                    Text(
-                      'Description',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      campaign.description,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const SizedBox(height: 24),
-
-                    // Details grid
-                    GridView.count(
-                      crossAxisCount: 2,
-                      childAspectRatio: 4,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 24,
-                      mainAxisSpacing: 16,
-                      children: [
-                        _buildDetailItem(
-                          context,
-                          'Date Range',
-                          '${dateFormatter.format(campaign.startDate)} - ${dateFormatter.format(campaign.endDate)}',
-                          Icons.date_range,
-                        ),
-                        _buildDetailItem(
-                          context,
-                          'Duration',
-                          '${campaign.endDate.difference(campaign.startDate).inDays} days',
-                          Icons.timelapse,
-                        ),
-                        if (isActive)
-                          _buildDetailItem(
-                            context,
-                            'Days Remaining',
-                            '${campaign.endDate.difference(now).inDays} days',
-                            Icons.hourglass_bottom,
-                          ),
-                      ],
-                    ),
-
-                    // Progress bar if active
-                    if (isActive) ...[
-                      const SizedBox(height: 24),
-                      _buildProgressSection(
-                          campaign.startDate, campaign.endDate),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-
-            // Action buttons
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onDelete(campaign.id);
-                    },
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    label: const Text('Delete',
-                        style: TextStyle(color: Colors.red)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
+                  // Description
+                  Text(
+                    'Description',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onEdit(campaign);
+                  const SizedBox(height: 8),
+                  Text(
+                    campaign.description,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 24),
+
+                  // Details grid - Adapted for web with responsive layout
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth > 600;
+                      return Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          SizedBox(
+                            width: isWide
+                                ? (constraints.maxWidth / 2) - 16
+                                : constraints.maxWidth,
+                            child: _buildDetailItem(
+                              context,
+                              'Date Range',
+                              '${dateFormatter.format(campaign.startDate)} - ${dateFormatter.format(campaign.endDate)}',
+                              Icons.date_range,
+                            ),
+                          ),
+                          SizedBox(
+                            width: isWide
+                                ? (constraints.maxWidth / 2) - 16
+                                : constraints.maxWidth,
+                            child: _buildDetailItem(
+                              context,
+                              'Duration',
+                              '${campaign.endDate.difference(campaign.startDate).inDays} days',
+                              Icons.timelapse,
+                            ),
+                          ),
+                          if (isActive)
+                            SizedBox(
+                              width: isWide
+                                  ? (constraints.maxWidth / 2) - 16
+                                  : constraints.maxWidth,
+                              child: _buildDetailItem(
+                                context,
+                                'Days Remaining',
+                                '${campaign.endDate.difference(now).inDays} days',
+                                Icons.hourglass_bottom,
+                              ),
+                            ),
+                        ],
+                      );
                     },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit Campaign'),
+                  ),
+
+                  // Progress bar if active
+                  if (isActive) ...[
+                    const SizedBox(height: 24),
+                    _buildProgressSection(campaign.startDate, campaign.endDate),
+                  ],
+
+                  const SizedBox(height: 48),
+
+                  // Action buttons for bottom of content area
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => onDelete(campaign.id),
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        label: const Text('Delete Campaign',
+                            style: TextStyle(color: Colors.red)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      FilledButton.icon(
+                        onPressed: () => onEdit(campaign),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit Campaign'),
+                      ),
+                    ],
                   ),
                 ],
               ),

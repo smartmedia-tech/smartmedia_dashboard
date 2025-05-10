@@ -79,3 +79,13 @@ class GetCampaignDetails extends CampaignEvent {
   @override
   List<Object?> get props => [id];
 }
+
+class FilterCampaigns extends CampaignEvent {
+  final String searchQuery;
+  final CampaignStatus? status;
+
+  const FilterCampaigns({required this.searchQuery, this.status});
+
+  @override
+  List<Object?> get props => [searchQuery, status];
+}

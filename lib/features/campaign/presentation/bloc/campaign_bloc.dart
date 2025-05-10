@@ -37,6 +37,42 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
     on<ChangeCampaignStatusEvent>(_onChangeCampaignStatus);
     on<GetCampaignDetails>(_onGetCampaignDetails);
     on<UploadCampaignImageEvent>(_onUploadCampaignImage);
+    on<FilterCampaigns>(_onFilterCampaigns);
+  }
+  Future<void> _onFilterCampaigns(
+    FilterCampaigns event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      // Get all campaigns first
+      final allCampaigns = await getCampaigns();
+
+      // Apply filters
+      List<Campaign> filteredCampaigns = allCampaigns.where((campaign) {
+        // Search query filter
+        final matchesSearch = event.searchQuery.isEmpty ||
+            campaign.name
+                .toLowerCase()
+                .contains(event.searchQuery.toLowerCase()) ||
+            campaign.description
+                .toLowerCase()
+                .contains(event.searchQuery.toLowerCase());
+
+        // Status filter
+        final matchesStatus =
+            event.status == null || campaign.status == event.status;
+
+        return matchesSearch && matchesStatus;
+      }).toList();
+
+      emit(CampaignsLoaded(
+        campaigns: filteredCampaigns,
+        hasReachedMax: true, // Since we're filtering existing data
+        lastId: null,
+      ));
+    } catch (e) {
+      emit(CampaignError(e.toString()));
+    }
   }
 
   Future<void> _onUploadCampaignImage(
@@ -45,9 +81,6 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
   ) async {
     try {
       emit(const CampaignLoading());
-
-      // Updated to match your use case signature and event properties
-      // Assuming uploadCampaignImage expects (campaignId, image, imageFile)
       final imageUrl = await uploadCampaignImage(
         event.campaignId,
         event.imageFile,

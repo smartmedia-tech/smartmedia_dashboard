@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/repositories/campaign_repository.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/campaign_form.dart';
 import 'package:smartmedia_campaign_manager/injection_container.dart';
@@ -20,24 +22,32 @@ class CampaignScreen extends StatefulWidget {
 }
 
 class _CampaignScreenState extends State<CampaignScreen> {
+  Campaign? _selectedCampaign;
+
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
-  final _statusFilterController = TextEditingController();
-  CampaignStatus? _filterStatus;
-  bool _showFilters = false;
+  // CampaignStatus? _filterStatus;
+  final List<String> _statusOptions = [
+    'All',
+    'Active',
+    'Pending',
+    'Completed',
+    'Paused'
+  ];
+  String _selectedStatus = 'All';
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<CampaignBloc>().add(const LoadCampaigns());
+    context.read<CampaignBloc>().add(LoadCampaigns());
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
-    _statusFilterController.dispose();
     super.dispose();
   }
 
@@ -55,159 +65,152 @@ class _CampaignScreenState extends State<CampaignScreen> {
   }
 
   void _applyFilters() {
-    // context.read<CampaignBloc>().add(FilterCampaigns(
-    //       searchQuery: _searchController.text.trim(),
-    //       status: _filterStatus,
-    //     ));
+    // Convert selected string status to enum
+    CampaignStatus? statusFilter;
+    if (_selectedStatus != 'All') {
+      statusFilter = CampaignStatus.values.firstWhere(
+        (e) => e.toString().split('.').last == _selectedStatus,
+        orElse: () => CampaignStatus.values.first,
+      );
+    }
+
+    context.read<CampaignBloc>().add(
+          FilterCampaigns(
+            searchQuery: _searchController.text,
+            status: statusFilter,
+          ),
+        );
   }
 
   void _clearFilters() {
     setState(() {
       _searchController.clear();
-      _filterStatus = null;
-      _statusFilterController.clear();
-      _showFilters = false;
+      _selectedStatus = 'All';
     });
-    context.read<CampaignBloc>().add(const LoadCampaigns());
+    context.read<CampaignBloc>().add(LoadCampaigns());
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header with search and filter
-          _buildHeader(context),
-          // Campaign list
-          Expanded(
-            child: BlocConsumer<CampaignBloc, CampaignState>(
-              listener: (context, state) {
-                if (state is CampaignError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${state.message}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                } else if (state is CampaignOperationSuccess) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-              builder: (context, state) {
-                if (state is CampaignLoading && state.campaigns.isEmpty) {
-                  return const Center(child: LoadingIndicator(itemCount: 4));
-                } else if (state is CampaignError && state.campaigns.isEmpty) {
-                  return Center(
-                    child: ErrorDisplay(
-                      message: state.message,
-                      onRetry: () =>
-                          context.read<CampaignBloc>().add(const LoadCampaigns()),
-                    ),
-                  );
-                } else if (state is CampaignsLoaded &&
-                    state.campaigns.isEmpty) {
-                  return const Center(child: EmptyCampaignsPlaceholder());
-                }
+    final theme = Theme.of(context);
 
-                List<Campaign> campaigns = [];
-                bool isLoadingMore = false;
-                bool hasReachedMax = false;
-
-                if (state is CampaignLoading) {
-                  campaigns = state.campaigns;
-                  isLoadingMore = true;
-                } else if (state is CampaignError) {
-                  campaigns = state.campaigns;
-                } else if (state is CampaignsLoaded) {
-                  campaigns = state.campaigns;
-                  hasReachedMax = state.hasReachedMax;
-                }
-
-                return _buildCampaignList(
-                  context,
-                  campaigns,
-                  isLoadingMore,
-                  hasReachedMax,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateDialog,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+    return Container(
+      color: theme.colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Page Header and Search Bar
+          _buildHeaderWithSearch(theme),
+
+          // Filter Chips
+          _buildFilterChips(theme),
+
+          // Campaign Grid View
+          Expanded(
+            child: _buildCampaignGridView(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderWithSearch(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Campaigns',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           Row(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search campaigns...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        _searchController.clear();
-                        _applyFilters();
-                      },
+              // Search Field
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: _isSearchExpanded ? 240 : 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      child: IconButton(
+                        icon: Icon(
+                          _isSearchExpanded ? Icons.close : Icons.search,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isSearchExpanded = !_isSearchExpanded;
+                            if (!_isSearchExpanded) {
+                              _searchController.clear();
+                              _applyFilters();
+                            }
+                          });
+                        },
+                        splashRadius: 20,
+                      ),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onChanged: (_) => _applyFilters(),
+                    if (_isSearchExpanded)
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search campaigns...',
+                            border: InputBorder.none,
+                            hintStyle: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withOpacity(0.7),
+                            ),
+                          ),
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          onChanged: (_) => _applyFilters(),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  setState(() => _showFilters = !_showFilters);
-                },
-                tooltip: 'Filters',
+              // Refresh Button
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.refresh,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  onPressed: () =>
+                      context.read<CampaignBloc>().add(LoadCampaigns()),
+                  tooltip: 'Refresh Campaigns',
+                  splashRadius: 20,
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: () {
-                  _clearFilters();
-                },
-                tooltip: 'Refresh',
-              ),
-            ],
-          ),
-          if (_showFilters) ...[
-            const SizedBox(height: 12),
-            _buildFilterSection(),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Campaigns',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              Text(
-                '${_getCampaignCount(context)} items',
-                style: Theme.of(context).textTheme.bodySmall,
+              const SizedBox(width: 12),
+              // Add Campaign Button
+              ElevatedButton.icon(
+                onPressed: () => _showCreateDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('New Campaign'),
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
               ),
             ],
           ),
@@ -216,112 +219,175 @@ class _CampaignScreenState extends State<CampaignScreen> {
     );
   }
 
-  Widget _buildFilterSection() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        SizedBox(
-          width: 200,
-          child: DropdownMenu<CampaignStatus>(
-            controller: _statusFilterController,
-            initialSelection: _filterStatus,
-            onSelected: (status) {
-              setState(() => _filterStatus = status);
-              _applyFilters();
-            },
-            dropdownMenuEntries: CampaignStatus.values
-                .map(
-                  (status) => DropdownMenuEntry<CampaignStatus>(
-                    value: status,
-                    label: status.toString().split('.').last,
-                  ),
-                )
-                .toList(),
-            inputDecorationTheme: InputDecorationTheme(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+  Widget _buildFilterChips(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+      child: Row(
+        children: [
+          Text(
+            'Filter by: ',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              fontWeight: FontWeight.w500,
             ),
-            label: const Text('Status'),
           ),
-        ),
-        if (_filterStatus != null)
-          ActionChip(
-            label: const Text('Clear status'),
-            onPressed: () {
-              setState(() => _filterStatus = null);
-              _statusFilterController.clear();
-              _applyFilters();
-            },
-            avatar: const Icon(Icons.close, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _statusOptions.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final status = _statusOptions[index];
+                  final isSelected = status == _selectedStatus;
+
+                  return ChoiceChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedStatus = status;
+                        });
+                        _applyFilters();
+                      }
+                    },
+                    selectedColor: theme.colorScheme.primary.withOpacity(0.2),
+                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontWeight:
+                          isSelected ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-      ],
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: _clearFilters,
+            icon: Icon(
+              Icons.tune_outlined,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            label: Text(
+              'Clear',
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildCampaignList(
-    BuildContext context,
-    List<Campaign> campaigns,
-    bool isLoadingMore,
-    bool hasReachedMax,
-  ) {
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        SliverPadding(
+  Widget _buildCampaignGridView() {
+    return BlocConsumer<CampaignBloc, CampaignState>(
+      listener: (context, state) {
+        if (state is CampaignError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${state.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else if (state is CampaignOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is CampaignLoading && state.campaigns.isEmpty) {
+          return const LoadingIndicator(itemCount: 6);
+        } else if (state is CampaignError && state.campaigns.isEmpty) {
+          return ErrorDisplay(
+            message: state.message,
+            onRetry: () => context.read<CampaignBloc>().add(LoadCampaigns()),
+          );
+        } else if (state is CampaignsLoaded && state.campaigns.isEmpty) {
+          return const EmptyCampaignsPlaceholder();
+        }
+
+        // Handle states with data
+        List<Campaign> campaigns = [];
+        bool isLoadingMore = false;
+        bool hasReachedMax = false;
+
+        if (state is CampaignLoading) {
+          campaigns = state.campaigns;
+          isLoadingMore = true;
+        } else if (state is CampaignError) {
+          campaigns = state.campaigns;
+        } else if (state is CampaignsLoaded) {
+          campaigns = state.campaigns;
+          hasReachedMax = state.hasReachedMax;
+        }
+
+        return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 360,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.85,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => CampaignCard(
-                campaign: campaigns[index],
-                onDelete: (id) => _showDeleteConfirmation(id),
-                onEdit: (campaign) => _showEditDialog(campaign),
-              ),
-              childCount: campaigns.length,
-            ),
-          ),
-        ),
-        if (isLoadingMore)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-        if (hasReachedMax && campaigns.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: Text(
-                  'You\'ve reached the end',
-                  style: Theme.of(context).textTheme.bodySmall,
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(8),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 350,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 0.85,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => CampaignCard(
+                      campaign: campaigns[index],
+                      onDelete: (id) => _showDeleteConfirmation(id),
+                      onEdit: (campaign) => _showEditDialog(campaign),
+                      onViewDetails: (campaign) {
+                        setState(() {
+                          _selectedCampaign = campaign;
+                        });
+                      },
+                    ),
+                    childCount: campaigns.length,
+                  ),
                 ),
               ),
-            ),
+              if (isLoadingMore)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              if (hasReachedMax && campaigns.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'No more campaigns to load',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-      ],
+        );
+      },
     );
-  }
-
-  int _getCampaignCount(BuildContext context) {
-    final state = context.read<CampaignBloc>().state;
-    if (state is CampaignsLoaded) {
-      return state.campaigns.length;
-    } else if (state is CampaignLoading) {
-      return state.campaigns.length;
-    } else if (state is CampaignError) {
-      return state.campaigns.length;
-    }
-    return 0;
   }
 
   void _showCreateDialog() {
@@ -331,10 +397,16 @@ class _CampaignScreenState extends State<CampaignScreen> {
         onSubmit: (campaign, imageFile) async {
           if (imageFile != null) {
             try {
+              // Generate a temporary ID for new campaigns
               final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+
+              // Get the use case from the dependency injection system
               final uploadCampaignImage = sl<UploadCampaignImage>();
+
+              // Upload the image and get URL
               final imageUrl = await uploadCampaignImage(tempId, imageFile);
 
+              // Update campaign with image URL
               campaign = Campaign(
                 id: campaign.id,
                 name: campaign.name,
@@ -353,9 +425,11 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   ),
                 );
               }
+              // Continue with the campaign creation even if image upload fails
             }
           }
 
+          // Add campaign to bloc
           context.read<CampaignBloc>().add(AddCampaign(campaign));
         },
       ),
@@ -370,12 +444,16 @@ class _CampaignScreenState extends State<CampaignScreen> {
         onSubmit: (updatedCampaign, imageFile) async {
           if (imageFile != null) {
             try {
+              // Get the use case from the dependency injection system
               final uploadCampaignImage = sl<UploadCampaignImage>();
+
+              // Use the existing campaign ID for the image
               final imageUrl = await uploadCampaignImage(
                 campaign.id,
                 imageFile,
               );
 
+              // Update campaign with the new image URL
               updatedCampaign = Campaign(
                 id: updatedCampaign.id,
                 name: updatedCampaign.name,
@@ -394,9 +472,11 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   ),
                 );
               }
+              // Continue with the campaign update even if image upload fails
             }
           }
 
+          // Update campaign in bloc
           context.read<CampaignBloc>().add(UpdateCampaign(updatedCampaign));
         },
       ),
@@ -406,7 +486,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
   void _showDeleteConfirmation(String id) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
         title: const Text('Delete Campaign'),
         content: const Text('Are you sure you want to delete this campaign?'),
         actions: [
@@ -419,7 +499,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
               context.read<CampaignBloc>().add(DeleteCampaign(id));
               Navigator.pop(context);
             },
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

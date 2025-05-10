@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
 
