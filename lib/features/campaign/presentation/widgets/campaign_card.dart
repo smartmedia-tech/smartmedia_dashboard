@@ -1,305 +1,155 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/presentation/pages/campaign_details_screen.dart';
+import 'package:smartmedia_campaign_manager/core/utils/function_utils.dart';
 import '../../domain/entities/campaign.dart';
 
 class CampaignCard extends StatelessWidget {
   final Campaign campaign;
-  final VoidCallback? onDelete;
-  final VoidCallback? onEdit;
-  final VoidCallback? onView;
-  final double width;
-  final double height;
+  final Function(String) onDelete;
+  final Function(Campaign) onEdit;
 
   const CampaignCard({
     super.key,
     required this.campaign,
-    this.onDelete,
-    this.onEdit,
-    this.onView,
-    this.width = 340,
-    this.height = 300,
+    required this.onDelete,
+    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final formatter = DateFormat('MMM dd, yyyy');
+    final theme = Theme.of(context);
+    final statusColor = getStatusColor(campaign.status);
     final now = DateTime.now();
     final isActive =
         now.isAfter(campaign.startDate) && now.isBefore(campaign.endDate);
-    final isUpcoming = now.isBefore(campaign.startDate);
-    final isPast = now.isAfter(campaign.endDate);
+    final formatter = DateFormat('MMM dd');
 
-    Color statusColor;
-    String statusText;
-
-    if (isActive) {
-      statusColor = Colors.green.shade600;
-      statusText = 'Active';
-    } else if (isUpcoming) {
-      statusColor = Colors.blue.shade600;
-      statusText = 'Upcoming';
-    } else {
-      statusColor = Colors.grey.shade600;
-      statusText = 'Completed';
-    }
-
-    return Container(
-      width: width,
-      height: height,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CampaignDetailsScreen(campaign: campaign),
-            ),
-          );
-        },
-        child: Card(
-          elevation: 4,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SizedBox(
+      child: Card(
+        elevation: 2,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: InkWell(
+          onTap: () => _showDetails(context),
+          child: Stack(
             children: [
-              // Campaign Image
-              Hero(
-                   tag: 'campaign-hero-${campaign.id}',
-                child: Container(
-                  height: 120,
+              // Background image
+              Positioned.fill(
+                child: CachedNetworkImage(
+                  imageUrl: campaign.clientLogoUrl ??
+                      getPlaceholderUrl(campaign.name),
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.error),
+                  ),
+                ),
+              ),
+              // Dark overlay for better text visibility
+              Positioned.fill(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: CachedNetworkImageProvider(
-                        campaign.clientLogoUrl ??
-                            'https://via.placeholder.com/600x400?text=${campaign.name}',
-                      ),
-                      fit: BoxFit.cover,
-                    ),
                     gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.black.withOpacity(0.4), Colors.transparent],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.7),
+                        Colors.transparent,
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.3),
+                      ],
                     ),
                   ),
-                  child: Stack(
-                    children: [
-                      // Status chip in top-left corner
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                ),
+              ),
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Status and actions
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: statusColor,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            statusText,
-                            style: TextStyle(
+                            campaign.status
+                                .toString()
+                                .split('.')
+                                .last
+                                .toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
                               color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
-                      // Menu in top-right corner
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle,
-                          ),
-                          child: PopupMenuButton<String>(
-                            icon: Icon(Icons.more_vert, color: Colors.black87),
-                            onSelected: (value) {
-                              if (value == 'view' && onView != null) {
-                                onView!();
-                              } else if (value == 'edit' && onEdit != null) {
-                                onEdit!();
-                              } else if (value == 'delete' && onDelete != null) {
-                                onDelete!();
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'view',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.visibility, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('View Details'),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, size: 18, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete', style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                        const Spacer(),
+                        IconButton(
+                          icon:
+                              const Icon(Icons.more_vert, color: Colors.white),
+                          onPressed: () => _showMenu(context),
+                          tooltip: 'Actions',
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Campaign name
-                      Text(
-                        campaign.name,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 8),
-                      
-                      // Description
-                      Text(
-                        campaign.description,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      
-                      Spacer(),
-                      
-                      // Date information
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${formatter.format(campaign.startDate)} - ${formatter.format(campaign.endDate)}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[800],
-                              ),
-                            ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // Campaign name and dates
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          campaign.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
-                      
-                      SizedBox(height: 12),
-                      
-                      // Progress bar
-                      if (isActive) _buildProgressIndicator(campaign.startDate, campaign.endDate),
-                      
-                      if (isUpcoming) 
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.access_time, size: 16, color: Colors.blue[600]),
-                            SizedBox(width: 8),
-                            Text(
-                              'Starts in ${campaign.startDate.difference(now).inDays} days',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.blue[600],
-                                fontWeight: FontWeight.w500,
+                            Icon(
+                              Icons.calendar_today,
+                              size: 14,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                '${formatter.format(campaign.startDate)} - ${formatter.format(campaign.endDate)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                        
-                      if (isPast)
-                        Row(
-                          children: [
-                            Icon(Icons.check_circle_outline, size: 16, color: Colors.grey[600]),
-                            SizedBox(width: 8),
-                            Text(
-                              'Ended ${now.difference(campaign.endDate).inDays} days ago',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              // Action buttons
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(12),
-                    bottomRight: Radius.circular(12),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: onView,
-                        icon: Icon(Icons.visibility, size: 18),
-                        label: Text('View'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.black87,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                        ),
+                      ],
+                    ),
+                    // Progress indicator for active campaigns
+                    if (isActive)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: _buildProgressIndicator(
+                            campaign.startDate, campaign.endDate),
                       ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 24,
-                      color: Colors.grey.withOpacity(0.3),
-                    ),
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: onEdit,
-                        icon: Icon(Icons.edit, size: 18),
-                        label: Text('Edit'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.black87,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -314,10 +164,8 @@ class CampaignCard extends StatelessWidget {
     final now = DateTime.now();
     final totalDuration = end.difference(start).inDays;
     final elapsedDuration = now.difference(start).inDays;
-
-    // Calculate progress (0.0 to 1.0)
     final progress = elapsedDuration / totalDuration;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -325,34 +173,123 @@ class CampaignCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Campaign progress',
+              'Progress',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
+                fontSize: 10,
+                color: Colors.white.withOpacity(0.8),
               ),
             ),
             Text(
-              '${(progress * 100).toInt()}%',
-              style: TextStyle(
-                fontSize: 13,
+              '${(progress * 100).toStringAsFixed(0)}%',
+              style: const TextStyle(
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
-                color: Colors.green[700],
+                color: Colors.white,
               ),
             ),
           ],
         ),
-        SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.green[600]!),
-            minHeight: 8,
-          ),
+        const SizedBox(height: 4),
+        LinearProgressIndicator(
+          value: progress,
+          backgroundColor: Colors.white.withOpacity(0.2),
+          color: Colors.white,
+          minHeight: 3,
+          borderRadius: BorderRadius.circular(3),
         ),
       ],
+    );
+  }
+
+  void _showMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Edit'),
+            onTap: () {
+              Navigator.pop(context);
+              onEdit(campaign);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              onDelete(campaign.id);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(campaign.name),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: CachedNetworkImage(
+                  imageUrl: campaign.clientLogoUrl ??
+                      getPlaceholderUrl(campaign.name),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                campaign.description,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              _buildDetailRow(
+                  'Status', campaign.status.toString().split('.').last),
+              _buildDetailRow(
+                  'Start Date', DateFormat.yMMMd().format(campaign.startDate)),
+              _buildDetailRow(
+                  'End Date', DateFormat.yMMMd().format(campaign.endDate)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
+        ],
+      ),
     );
   }
 }

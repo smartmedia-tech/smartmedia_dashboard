@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/campaign_form.dart';
+import 'package:smartmedia_campaign_manager/injection_container.dart';
 import '../bloc/campaign_bloc.dart';
 import '../bloc/campaign_event.dart';
 import '../bloc/campaign_state.dart';
@@ -18,335 +20,408 @@ class CampaignScreen extends StatefulWidget {
 }
 
 class _CampaignScreenState extends State<CampaignScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descController = TextEditingController();
-  DateTime? _startDate;
-  DateTime? _endDate;
-  bool _isLoading = false;
+  final _scrollController = ScrollController();
+  final _searchController = TextEditingController();
+  final _statusFilterController = TextEditingController();
+  CampaignStatus? _filterStatus;
+  bool _showFilters = false;
 
   @override
   void initState() {
     super.initState();
-    // Load campaigns when the screen initializes
-    context.read<CampaignBloc>().add(LoadCampaigns());
+    _scrollController.addListener(_onScroll);
+    context.read<CampaignBloc>().add(const LoadCampaigns());
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _descController.dispose();
+    _scrollController.dispose();
+    _searchController.dispose();
+    _statusFilterController.dispose();
     super.dispose();
   }
 
-  void _showCreateDialog() {
-    _nameController.clear();
-    _descController.clear();
-    _startDate = null;
-    _endDate = null;
-    _isLoading = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Create Campaign',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 500),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: 'Campaign Name',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.campaign),
-                          ),
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Name required' : null,
-                        ),
-                        SizedBox(height: 16),
-                        TextFormField(
-                          controller: _descController,
-                          decoration: InputDecoration(
-                            labelText: 'Description',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.description),
-                          ),
-                          maxLines: 3,
-                          validator: (v) => v == null || v.trim().isEmpty
-                              ? 'Description required'
-                              : null,
-                        ),
-                        SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _DatePickerField(
-                                label: 'Start Date',
-                                value: _startDate,
-                                onSelect: (date) {
-                                  setDialogState(() => _startDate = date);
-                                },
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: _DatePickerField(
-                                label: 'End Date',
-                                value: _endDate,
-                                onSelect: (date) {
-                                  setDialogState(() => _endDate = date);
-                                },
-                                minDate: _startDate,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  child: Text('Cancel'),
-                  onPressed: _isLoading ? null : () => Navigator.pop(context),
-                ),
-                ElevatedButton(
-                  child: _isLoading
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text('Create'),
-                  onPressed: _isLoading
-                      ? null
-                      : () async {
-                          if (_formKey.currentState?.validate() != true ||
-                              _startDate == null ||
-                              _endDate == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Please fill all fields'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (_endDate!.isBefore(_startDate!)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('End date must be after start date'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-
-                          setDialogState(() => _isLoading = true);
-
-                          final campaign = Campaign(
-                            id: '',
-                            name: _nameController.text.trim(),
-                            description: _descController.text.trim(),
-                            startDate: _startDate!,
-                            endDate: _endDate!,
-                          );
-
-                          context.read<CampaignBloc>().add(AddCampaign(campaign));
-                          
-                          // Close dialog after a short delay to show loading state
-                          await Future.delayed(Duration(milliseconds: 500));
-                          if (mounted) Navigator.pop(context);
-                        },
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      final state = context.read<CampaignBloc>().state;
+      if (state is CampaignsLoaded && !state.hasReachedMax) {
+        context.read<CampaignBloc>().add(LoadMoreCampaigns(
+              limit: 10,
+              lastId: state.lastId ?? '',
+            ));
+      }
+    }
   }
 
-  void _showSnackbar(String message, [Color? color]) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+  void _applyFilters() {
+    // context.read<CampaignBloc>().add(FilterCampaigns(
+    //       searchQuery: _searchController.text.trim(),
+    //       status: _filterStatus,
+    //     ));
   }
 
-  int _calculateCrossAxisCount(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    if (width > 1200) return 4;
-    if (width > 900) return 3;
-    if (width > 600) return 2;
-    return 1;
+  void _clearFilters() {
+    setState(() {
+      _searchController.clear();
+      _filterStatus = null;
+      _statusFilterController.clear();
+      _showFilters = false;
+    });
+    context.read<CampaignBloc>().add(const LoadCampaigns());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Campaign Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () => context.read<CampaignBloc>().add(LoadCampaigns()),
-            tooltip: 'Refresh Campaigns',
+      body: Column(
+        children: [
+          // Header with search and filter
+          _buildHeader(context),
+          // Campaign list
+          Expanded(
+            child: BlocConsumer<CampaignBloc, CampaignState>(
+              listener: (context, state) {
+                if (state is CampaignError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${state.message}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } else if (state is CampaignOperationSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              builder: (context, state) {
+                if (state is CampaignLoading && state.campaigns.isEmpty) {
+                  return const Center(child: LoadingIndicator(itemCount: 4));
+                } else if (state is CampaignError && state.campaigns.isEmpty) {
+                  return Center(
+                    child: ErrorDisplay(
+                      message: state.message,
+                      onRetry: () =>
+                          context.read<CampaignBloc>().add(const LoadCampaigns()),
+                    ),
+                  );
+                } else if (state is CampaignsLoaded &&
+                    state.campaigns.isEmpty) {
+                  return const Center(child: EmptyCampaignsPlaceholder());
+                }
+
+                List<Campaign> campaigns = [];
+                bool isLoadingMore = false;
+                bool hasReachedMax = false;
+
+                if (state is CampaignLoading) {
+                  campaigns = state.campaigns;
+                  isLoadingMore = true;
+                } else if (state is CampaignError) {
+                  campaigns = state.campaigns;
+                } else if (state is CampaignsLoaded) {
+                  campaigns = state.campaigns;
+                  hasReachedMax = state.hasReachedMax;
+                }
+
+                return _buildCampaignList(
+                  context,
+                  campaigns,
+                  isLoadingMore,
+                  hasReachedMax,
+                );
+              },
+            ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: BlocConsumer<CampaignBloc, CampaignState>(
-          listener: (context, state) {
-            if (state is CampaignError) {
-              _showSnackbar('Error: ${state.message}', Colors.red);
-            } else if (state is CampaignAdded) {
-              _showSnackbar('Campaign created successfully!', Colors.green);
-              // Reload the campaigns after adding
-              context.read<CampaignBloc>().add(LoadCampaigns());
-            }
-          },
-          builder: (context, state) {
-            if (state is CampaignLoading) {
-              return const LoadingIndicator();
-            } else if (state is CampaignError) {
-              return ErrorDisplay(
-                message: state.message,
-                onRetry: () => context.read<CampaignBloc>().add(LoadCampaigns()),
-              );
-            } else if (state is CampaignLoaded && state.campaigns.isEmpty) {
-              return const EmptyCampaignsPlaceholder();
-            } else if (state is CampaignLoaded) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Active Campaigns',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  Text(
-                    'You have ${state.campaigns.length} active campaigns',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: _calculateCrossAxisCount(context),
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 1.5,
-                      ),
-                      itemCount: state.campaigns.length,
-                      itemBuilder: (_, i) => CampaignCard(
-                        campaign: state.campaigns[i],
-                        onDelete: () => _showDeleteConfirmation(state.campaigns[i]),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }
-            return Center(child: Text('No campaigns found.'));
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: _showCreateDialog,
-        label: Text('New Campaign'),
-        icon: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
 
-  void _showDeleteConfirmation(Campaign campaign) {
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search campaigns...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        _searchController.clear();
+                        _applyFilters();
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onChanged: (_) => _applyFilters(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () {
+                  setState(() => _showFilters = !_showFilters);
+                },
+                tooltip: 'Filters',
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  _clearFilters();
+                },
+                tooltip: 'Refresh',
+              ),
+            ],
+          ),
+          if (_showFilters) ...[
+            const SizedBox(height: 12),
+            _buildFilterSection(),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Campaigns',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Text(
+                '${_getCampaignCount(context)} items',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        SizedBox(
+          width: 200,
+          child: DropdownMenu<CampaignStatus>(
+            controller: _statusFilterController,
+            initialSelection: _filterStatus,
+            onSelected: (status) {
+              setState(() => _filterStatus = status);
+              _applyFilters();
+            },
+            dropdownMenuEntries: CampaignStatus.values
+                .map(
+                  (status) => DropdownMenuEntry<CampaignStatus>(
+                    value: status,
+                    label: status.toString().split('.').last,
+                  ),
+                )
+                .toList(),
+            inputDecorationTheme: InputDecorationTheme(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            label: const Text('Status'),
+          ),
+        ),
+        if (_filterStatus != null)
+          ActionChip(
+            label: const Text('Clear status'),
+            onPressed: () {
+              setState(() => _filterStatus = null);
+              _statusFilterController.clear();
+              _applyFilters();
+            },
+            avatar: const Icon(Icons.close, size: 16),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCampaignList(
+    BuildContext context,
+    List<Campaign> campaigns,
+    bool isLoadingMore,
+    bool hasReachedMax,
+  ) {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 360,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 0.85,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => CampaignCard(
+                campaign: campaigns[index],
+                onDelete: (id) => _showDeleteConfirmation(id),
+                onEdit: (campaign) => _showEditDialog(campaign),
+              ),
+              childCount: campaigns.length,
+            ),
+          ),
+        ),
+        if (isLoadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        if (hasReachedMax && campaigns.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(
+                  'You\'ve reached the end',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  int _getCampaignCount(BuildContext context) {
+    final state = context.read<CampaignBloc>().state;
+    if (state is CampaignsLoaded) {
+      return state.campaigns.length;
+    } else if (state is CampaignLoading) {
+      return state.campaigns.length;
+    } else if (state is CampaignError) {
+      return state.campaigns.length;
+    }
+    return 0;
+  }
+
+  void _showCreateDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => CampaignFormDialog(
+        onSubmit: (campaign, imageFile) async {
+          if (imageFile != null) {
+            try {
+              final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+              final uploadCampaignImage = sl<UploadCampaignImage>();
+              final imageUrl = await uploadCampaignImage(tempId, imageFile);
+
+              campaign = Campaign(
+                id: campaign.id,
+                name: campaign.name,
+                description: campaign.description,
+                startDate: campaign.startDate,
+                endDate: campaign.endDate,
+                status: campaign.status,
+                clientLogoUrl: imageUrl,
+              );
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to upload image: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          }
+
+          context.read<CampaignBloc>().add(AddCampaign(campaign));
+        },
+      ),
+    );
+  }
+
+  void _showEditDialog(Campaign campaign) {
+    showDialog(
+      context: context,
+      builder: (_) => CampaignFormDialog(
+        campaign: campaign,
+        onSubmit: (updatedCampaign, imageFile) async {
+          if (imageFile != null) {
+            try {
+              final uploadCampaignImage = sl<UploadCampaignImage>();
+              final imageUrl = await uploadCampaignImage(
+                campaign.id,
+                imageFile,
+              );
+
+              updatedCampaign = Campaign(
+                id: updatedCampaign.id,
+                name: updatedCampaign.name,
+                description: updatedCampaign.description,
+                startDate: updatedCampaign.startDate,
+                endDate: updatedCampaign.endDate,
+                status: updatedCampaign.status,
+                clientLogoUrl: imageUrl,
+              );
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to upload image: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          }
+
+          context.read<CampaignBloc>().add(UpdateCampaign(updatedCampaign));
+        },
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(String id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Campaign'),
-        content: Text('Are you sure you want to delete "${campaign.name}"?'),
+        title: const Text('Delete Campaign'),
+        content: const Text('Are you sure you want to delete this campaign?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              // TODO: Implement delete functionality in your BLoC
-              // context.read<CampaignBloc>().add(DeleteCampaign(campaign.id));
+              context.read<CampaignBloc>().add(DeleteCampaign(id));
               Navigator.pop(context);
-              _showSnackbar('Delete functionality not implemented yet', Colors.orange);
             },
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text('Delete'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DatePickerField extends StatelessWidget {
-  final String label;
-  final DateTime? value;
-  final Function(DateTime) onSelect;
-  final DateTime? minDate;
-
-  const _DatePickerField({
-    required this.label,
-    required this.value,
-    required this.onSelect,
-    this.minDate,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = DateFormat('MMM dd, yyyy');
-    
-    return InkWell(
-      onTap: () async {
-        final date = await showDatePicker(
-          context: context,
-          initialDate: value ?? DateTime.now(),
-          firstDate: minDate ?? DateTime.now(),
-          lastDate: DateTime(2100),
-        );
-        if (date != null) onSelect(date);
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(),
-          suffixIcon: Icon(Icons.calendar_today),
-        ),
-        child: Text(
-          value == null ? 'Select date' : formatter.format(value!),
-          style: value == null
-              ? TextStyle(color: Colors.grey)
-              : TextStyle(color: Colors.black),
-        ),
       ),
     );
   }

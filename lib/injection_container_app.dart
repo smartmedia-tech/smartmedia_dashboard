@@ -35,7 +35,7 @@ class InjectionContainerApp extends StatelessWidget {
                   AuthBloc(authUseCases: context.read<AuthUseCases>()),
             ),
             BlocProvider<CampaignBloc>(
-              create: (_) => sl<CampaignBloc>()..add(LoadCampaigns()),
+              create: (_) => sl<CampaignBloc>()..add(const LoadCampaigns()),
             ),
           ],
           child: Consumer<ThemeController>(

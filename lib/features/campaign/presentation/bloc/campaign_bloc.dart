@@ -1,35 +1,212 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/get_campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
+import '../../domain/usecases/change_campaign_status.dart';
+import '../../domain/usecases/create_campaign.dart';
+import '../../domain/usecases/get_campaign.dart';
+import '../../domain/usecases/get_campaigns.dart';
+import '../../domain/usecases/update_campaign.dart' as update_usecase;
+import '../../domain/usecases/delete_campaign.dart' as delete_usecase;
+
 import 'campaign_event.dart';
 import 'campaign_state.dart';
-import '../../domain/usecases/create_campaign.dart';
 
 class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
-  final CreateCampaign createCampaignUsecase;
-  final GetCampaigns getCampaignsUsecase;
+  final CreateCampaign createCampaign;
+  final GetCampaigns getCampaigns;
+  final GetCampaign getCampaign;
+  final update_usecase.UpdateCampaign updateCampaign;
+  final delete_usecase.DeleteCampaign deleteCampaign;
+  final ChangeCampaignStatus changeCampaignStatus;
+  final UploadCampaignImage uploadCampaignImage;
 
-  CampaignBloc(this.createCampaignUsecase, this.getCampaignsUsecase)
-      : super(CampaignInitial()) {
-    on<LoadCampaigns>((event, emit) async {
-      emit(CampaignLoading());
-      try {
-        final campaigns = await getCampaignsUsecase();
-        emit(CampaignLoaded(campaigns));
-      } catch (e) {
-        debugPrint(e.toString());
+  CampaignBloc({
+    required this.createCampaign,
+    required this.getCampaigns,
+    required this.getCampaign,
+    required this.updateCampaign,
+    required this.deleteCampaign,
+    required this.changeCampaignStatus,
+    required this.uploadCampaignImage,
+  }) : super(CampaignInitial()) {
+    on<LoadCampaigns>(_onLoadCampaigns);
+    on<LoadMoreCampaigns>(_onLoadMoreCampaigns);
+    on<AddCampaign>(_onAddCampaign);
+    on<UpdateCampaign>(_onUpdateCampaign);
+    on<DeleteCampaign>(_onDeleteCampaign);
+    on<ChangeCampaignStatusEvent>(_onChangeCampaignStatus);
+    on<GetCampaignDetails>(_onGetCampaignDetails);
+    on<UploadCampaignImageEvent>(_onUploadCampaignImage);
+  }
+
+  Future<void> _onUploadCampaignImage(
+    UploadCampaignImageEvent event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      emit(const CampaignLoading());
+
+      // Updated to match your use case signature and event properties
+      // Assuming uploadCampaignImage expects (campaignId, image, imageFile)
+      final imageUrl = await uploadCampaignImage(
+        event.campaignId,
+        event.imageFile,
+      );
+
+      emit(CampaignImageUploaded(imageUrl));
+    } catch (e) {
+      emit(CampaignError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadCampaigns(
+    LoadCampaigns event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      emit(const CampaignLoading());
+      final campaigns = await getCampaigns();
+      emit(CampaignsLoaded(
+        campaigns: campaigns,
+        hasReachedMax: campaigns.length < event.limit,
+        lastId: campaigns.isNotEmpty ? campaigns.last.id : null,
+      ));
+    } catch (e) {
+      emit(CampaignError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadMoreCampaigns(
+    LoadMoreCampaigns event,
+    Emitter<CampaignState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is CampaignsLoaded && currentState.hasReachedMax) return;
+
+    try {
+      if (currentState is CampaignsLoaded) {
+        emit(CampaignLoading(campaigns: currentState.campaigns));
+
+        final campaigns = await getCampaigns(
+            // limit: event.limit,
+            // lastId: event.lastId,
+            );
+
+        emit(
+          campaigns.isEmpty
+              ? currentState.copyWith(hasReachedMax: true)
+              : CampaignsLoaded(
+                  campaigns: [...currentState.campaigns, ...campaigns],
+                  hasReachedMax: campaigns.length < event.limit,
+                  lastId: campaigns.isNotEmpty ? campaigns.last.id : null,
+                ),
+        );
+      }
+    } catch (e) {
+      if (currentState is CampaignsLoaded) {
+        emit(CampaignError(e.toString(), campaigns: currentState.campaigns));
+      } else {
         emit(CampaignError(e.toString()));
       }
-    });
+    }
+  }
 
-    on<AddCampaign>((event, emit) async {
-      try {
-        await createCampaignUsecase(event.campaign);
-        add(LoadCampaigns());
-      } catch (e) {
-         debugPrint(e.toString());
+  Future<void> _onAddCampaign(
+    AddCampaign event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      await createCampaign(event.campaign);
+      emit(const CampaignOperationSuccess('Campaign created successfully'));
+      add(const LoadCampaigns());
+    } catch (e) {
+      // Preserve current campaigns if available
+      if (state is CampaignsLoaded) {
+        final campaigns = (state as CampaignsLoaded).campaigns;
+        emit(CampaignError(e.toString(), campaigns: campaigns));
+      } else {
         emit(CampaignError(e.toString()));
       }
-    });
+    }
+  }
+
+  Future<void> _onUpdateCampaign(
+    UpdateCampaign event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      await updateCampaign(event.campaign);
+      emit(const CampaignOperationSuccess('Campaign updated successfully'));
+      add(GetCampaignDetails(event.campaign.id));
+    } catch (e) {
+      // Preserve current campaigns if available
+      if (state is CampaignsLoaded) {
+        final campaigns = (state as CampaignsLoaded).campaigns;
+        emit(CampaignError(e.toString(), campaigns: campaigns));
+      } else {
+        emit(CampaignError(e.toString()));
+      }
+    }
+  }
+
+  Future<void> _onDeleteCampaign(
+    DeleteCampaign event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      await deleteCampaign(event.id);
+      emit(const CampaignOperationSuccess('Campaign deleted successfully'));
+      add(const LoadCampaigns());
+    } catch (e) {
+      // Preserve current campaigns if available
+      if (state is CampaignsLoaded) {
+        final campaigns = (state as CampaignsLoaded).campaigns;
+        emit(CampaignError(e.toString(), campaigns: campaigns));
+      } else {
+        emit(CampaignError(e.toString()));
+      }
+    }
+  }
+
+  Future<void> _onChangeCampaignStatus(
+    ChangeCampaignStatusEvent event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      await changeCampaignStatus(event.id, event.status);
+      emit(const CampaignOperationSuccess('Campaign status updated'));
+      add(GetCampaignDetails(event.id));
+    } catch (e) {
+      // Preserve current campaigns if available
+      if (state is CampaignsLoaded) {
+        final campaigns = (state as CampaignsLoaded).campaigns;
+        emit(CampaignError(e.toString(), campaigns: campaigns));
+      } else {
+        emit(CampaignError(e.toString()));
+      }
+    }
+  }
+
+  Future<void> _onGetCampaignDetails(
+    GetCampaignDetails event,
+    Emitter<CampaignState> emit,
+  ) async {
+    try {
+      // If we already have campaigns loaded, keep them while loading details
+      final currentCampaigns =
+          state is CampaignsLoaded ? (state as CampaignsLoaded).campaigns : [];
+      emit(CampaignLoading(campaigns: currentCampaigns.cast<Campaign>()));
+
+      final campaign = await getCampaign(event.id);
+      emit(CampaignLoaded(campaign));
+    } catch (e) {
+      // Preserve current campaigns if available
+      if (state is CampaignsLoaded) {
+        final campaigns = (state as CampaignsLoaded).campaigns;
+        emit(CampaignError(e.toString(), campaigns: campaigns));
+      } else {
+        emit(CampaignError(e.toString()));
+      }
+    }
   }
 }
