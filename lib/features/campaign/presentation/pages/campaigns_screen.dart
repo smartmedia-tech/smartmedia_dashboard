@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/domain/repositories/campaign_repository.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/campaign_form.dart';
 import 'package:smartmedia_campaign_manager/injection_container.dart';
@@ -41,7 +39,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<CampaignBloc>().add(LoadCampaigns());
+    context.read<CampaignBloc>().add(const LoadCampaigns());
   }
 
   @override
@@ -87,7 +85,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
       _searchController.clear();
       _selectedStatus = 'All';
     });
-    context.read<CampaignBloc>().add(LoadCampaigns());
+    context.read<CampaignBloc>().add(const LoadCampaigns());
   }
 
   @override
@@ -135,7 +133,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                 width: _isSearchExpanded ? 240 : 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant,
+                  color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -186,7 +184,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant,
+                  color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: IconButton(
@@ -195,7 +193,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () =>
-                      context.read<CampaignBloc>().add(LoadCampaigns()),
+                      context.read<CampaignBloc>().add(const LoadCampaigns()),
                   tooltip: 'Refresh Campaigns',
                   splashRadius: 20,
                 ),
@@ -255,7 +253,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                       }
                     },
                     selectedColor: theme.colorScheme.primary.withOpacity(0.2),
-                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     labelStyle: TextStyle(
                       color: isSelected
                           ? theme.colorScheme.primary
@@ -314,7 +312,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
         } else if (state is CampaignError && state.campaigns.isEmpty) {
           return ErrorDisplay(
             message: state.message,
-            onRetry: () => context.read<CampaignBloc>().add(LoadCampaigns()),
+            onRetry: () => context.read<CampaignBloc>().add(const LoadCampaigns()),
           );
         } else if (state is CampaignsLoaded && state.campaigns.isEmpty) {
           return const EmptyCampaignsPlaceholder();
@@ -372,9 +370,9 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   ),
                 ),
               if (hasReachedMax && campaigns.isNotEmpty)
-                SliverToBoxAdapter(
+                const SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: EdgeInsets.all(16.0),
                     child: Center(
                       child: Text(
                         'No more campaigns to load',
