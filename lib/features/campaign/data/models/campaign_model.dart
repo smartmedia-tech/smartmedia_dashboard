@@ -8,6 +8,7 @@ class CampaignModel extends Campaign {
     required super.startDate,
     required super.endDate,
     super.clientLogoUrl,
+    super.status,
   });
 
   Map<String, dynamic> toMap() {
@@ -16,7 +17,8 @@ class CampaignModel extends Campaign {
       'description': description,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
-      'clientLogoUrl': clientLogoUrl
+      'clientLogoUrl': clientLogoUrl,
+      'status': status.index,
     };
   }
 
@@ -27,7 +29,8 @@ class CampaignModel extends Campaign {
       description: map['description'],
       startDate: DateTime.parse(map['startDate']),
       endDate: DateTime.parse(map['endDate']),
-       clientLogoUrl: map['clientLogoUrl'],
+      clientLogoUrl: map['clientLogoUrl'],
+      status: CampaignStatus.values[map['status'] ?? 0],
     );
   }
 }
