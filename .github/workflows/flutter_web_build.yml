@@ -1,29 +1,49 @@
-# name: Flutter Web Build
+
+# name: Deploy to GitHub Pages
 
 # on:
 #   push:
-#     branches:
-#       - main
-#   pull_request:
-#     branches:
-#       - main
+#     branches: [ main ]
 
 # jobs:
-#   build:
-#     name: Build Flutter Web
+#   build-deploy:
 #     runs-on: ubuntu-latest
-
 #     steps:
-#     - uses: actions/checkout@v3
-
-#     - name: Setup Flutter
-#       uses: subosito/flutter-action@v2
-#       with:
-#         flutter-version: '3.22.2' 
-#         channel: stable
-
-#     - name: Install Dependencies
-#       run: flutter pub get
-
-#     - name: Build Web App
-#       run: flutter build web
+#       - uses: actions/checkout@v3
+      
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           channel: 'stable'
+          
+#       - name: Enable web
+#         run: flutter config --enable-web
+          
+#       - name: Get dependencies
+#         run: flutter pub get
+        
+#       - name: Build web
+#         run: flutter build web --release --base-href /smartmedia_campaign_manager/
+      
+#       - name: Create .nojekyll file
+#         run: touch build/web/.nojekyll
+        
+#       - name: Create test file
+#         run: |
+#           cat > build/web/test.html << 'EOL'
+#           <!DOCTYPE html>
+#           <html>
+#           <head>
+#             <title>Test Page</title>
+#           </head>
+#           <body>
+#             <h1>Test Page Works!</h1>
+#             <p>If you can see this, your GitHub Pages deployment is working.</p>
+#           </body>
+#           </html>
+#           EOL
+      
+#       - name: Deploy
+#         uses: peaceiris/actions-gh-pages@v3
+#         with:
+#           github_token: ${{ secrets.GITHUB_TOKEN }}
+#           publish_dir: ./build/web
