@@ -13,19 +13,27 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          
+      
       - name: Enable web
         run: flutter config --enable-web
-          
+      
       - name: Get dependencies
         run: flutter pub get
-        
+      
+      # Add this step to fix the base href in index.html
+      - name: Fix index.html base href
+        run: |
+          if ! grep -q '<base href="\$FLUTTER_BASE_HREF">' web/index.html; then
+            sed -i 's/<head>/<head>\n  <base href="$FLUTTER_BASE_HREF">/' web/index.html
+          fi
+      
+      # Modify build command to specify web-renderer
       - name: Build web
-        run: flutter build web --release --base-href /smartmedia_campaign_manager/
+        run: flutter build web --release --base-href /smartmedia_campaign_manager/ --web-renderer html
       
       - name: Create .nojekyll file
         run: touch build/web/.nojekyll
-        
+      
       - name: Create test file
         run: |
           cat > build/web/test.html << 'EOL'

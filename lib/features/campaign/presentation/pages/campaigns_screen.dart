@@ -312,7 +312,8 @@ class _CampaignScreenState extends State<CampaignScreen> {
         } else if (state is CampaignError && state.campaigns.isEmpty) {
           return ErrorDisplay(
             message: state.message,
-            onRetry: () => context.read<CampaignBloc>().add(const LoadCampaigns()),
+            onRetry: () =>
+                context.read<CampaignBloc>().add(const LoadCampaigns()),
           );
         } else if (state is CampaignsLoaded && state.campaigns.isEmpty) {
           return const EmptyCampaignsPlaceholder();
