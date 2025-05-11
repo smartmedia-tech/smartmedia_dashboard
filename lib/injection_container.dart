@@ -8,6 +8,8 @@ import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/up
 // Data Layer
 import 'features/campaign/data/repositories/campaign_repository_impl.dart';
 import 'features/campaign/data/datasources/campaign_remote_data_source.dart';
+import 'features/stores/data/datasources/store_remote_data_source.dart';
+import 'features/stores/data/repositories/store_repository_impl.dart';
 
 // Domain Layer
 import 'features/campaign/domain/repositories/campaign_repository.dart';
@@ -17,9 +19,11 @@ import 'features/campaign/domain/usecases/get_campaign.dart';
 import 'features/campaign/domain/usecases/update_campaign.dart';
 import 'features/campaign/domain/usecases/delete_campaign.dart';
 import 'features/campaign/domain/usecases/change_campaign_status.dart';
+import 'features/stores/domain/repositories/store_repository.dart';
 
 // Presentation Layer
 import 'features/campaign/presentation/bloc/campaign_bloc.dart';
+import 'features/stores/presentation/bloc/stores_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -34,9 +38,20 @@ Future<void> init() async {
         sl<FirebaseFirestore>(), sl<FirebaseStorage>()),
   );
 
+  sl.registerLazySingleton<StoreRemoteDataSource>(
+    () => StoreRemoteDataSource(
+      firestore: sl<FirebaseFirestore>(),
+      storage: sl<FirebaseStorage>(),
+    ),
+  );
+
   // 🏗️ Repository
   sl.registerLazySingleton<CampaignRepository>(
     () => CampaignRepositoryImpl(sl<CampaignRemoteDataSource>()),
+  );
+
+  sl.registerLazySingleton<StoreRepository>(
+    () => StoreRepositoryImpl(sl<StoreRemoteDataSource>()),
   );
 
   // 📤 Use Cases
@@ -59,6 +74,13 @@ Future<void> init() async {
       deleteCampaign: sl<DeleteCampaign>(),
       changeCampaignStatus: sl<ChangeCampaignStatus>(),
       uploadCampaignImage: sl<UploadCampaignImage>(),
+    ),
+  );
+
+  // Register StoresBloc factory
+  sl.registerFactory(
+    () => StoresBloc(
+      storeRepository: sl<StoreRepository>(),
     ),
   );
 }

@@ -10,6 +10,8 @@ import 'package:smartmedia_campaign_manager/features/auth/data/repositories/auth
 import 'package:smartmedia_campaign_manager/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_event.dart';
+import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_bloc.dart';
+import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_event.dart';
 import 'package:smartmedia_campaign_manager/wrapper/wrapper.dart';
 
 import 'injection_container.dart';
@@ -36,6 +38,10 @@ class InjectionContainerApp extends StatelessWidget {
             ),
             BlocProvider<CampaignBloc>(
               create: (_) => sl<CampaignBloc>()..add(const LoadCampaigns()),
+            ),
+            // Add StoresBloc provider
+            BlocProvider<StoresBloc>(
+              create: (_) => sl<StoresBloc>()..add(LoadStores()),
             ),
           ],
           child: Consumer<ThemeController>(
