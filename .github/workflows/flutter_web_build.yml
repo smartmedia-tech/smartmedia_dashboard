@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy Flutter Web to GitHub Pages
 
 on:
   push:
@@ -10,9 +10,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            /opt/hostedtoolcache/flutter
+            .pub-cache
+            build/web
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+      
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
       
       - name: Enable web
         run: flutter config --enable-web
@@ -20,37 +30,24 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
       
-      # Add this step to fix the base href in index.html
       - name: Fix index.html base href
         run: |
-          if ! grep -q '<base href="\$FLUTTER_BASE_HREF">' web/index.html; then
-            sed -i 's/<head>/<head>\n  <base href="$FLUTTER_BASE_HREF">/' web/index.html
-          fi
+          sed -i 's/<base href="\/">/<base href="\/smartmedia_campaign_manager\/">/' web/index.html
       
-      # Modify build command to specify web-renderer
       - name: Build web
-        run: flutter build web --release --base-href /smartmedia_campaign_manager/ --web-renderer html
+        run: flutter build web --release --base-href /smartmedia_campaign_manager/ --web-renderer canvaskit --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
       
       - name: Create .nojekyll file
         run: touch build/web/.nojekyll
       
-      - name: Create test file
+      - name: Verify build
         run: |
-          cat > build/web/test.html << 'EOL'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Test Page</title>
-          </head>
-          <body>
-            <h1>Test Page Works!</h1>
-            <p>If you can see this, your GitHub Pages deployment is working.</p>
-          </body>
-          </html>
-          EOL
+          ls -la build/web
+          grep -r "smartmedia_campaign_manager" build/web/index.html
       
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
+          keep_files: true

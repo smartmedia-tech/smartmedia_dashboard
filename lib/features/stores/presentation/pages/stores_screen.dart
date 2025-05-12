@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:smartmedia_campaign_manager/core/utils/colors.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/error_display.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/repositories/store_repository.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_bloc.dart';
@@ -21,6 +22,8 @@ class _StoresScreenState extends State<StoresScreen> {
   String? _selectedRegion;
   List<String> _availableRegions = [];
   bool _gridView = true;
+  bool _isSearchExpanded = false;
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -48,6 +51,7 @@ class _StoresScreenState extends State<StoresScreen> {
   }
 
   void _showFilterDialog(BuildContext context) {
+    
     showDialog(
       context: context,
       builder: (context) {
@@ -229,118 +233,175 @@ class _StoresScreenState extends State<StoresScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    
 
     return Scaffold(
       body: Column(
         children: [
-          // Header Section
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Store Management',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              _gridView ? Icons.view_list : Icons.grid_view,
-                              color: theme.primaryColor,
-                            ),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _gridView = !_gridView;
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.add, color: theme.primaryColor),
-                          ),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const AddStoreScreen()),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Search and Filter Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color:
-                              isDarkMode ? Colors.grey[900] : Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: const InputDecoration(
-                            hintText: 'Search stores...',
-                            border: InputBorder.none,
-                            prefixIcon: Icon(Icons.search, color: Colors.grey),
-                            contentPadding:
-                                EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onChanged: (value) {
-                            context.read<StoresBloc>().add(SearchStores(value));
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilterChip(
-                      label: Text(_selectedRegion ?? 'All Regions'),
-                      avatar: _selectedRegion != null
-                          ? const Icon(Icons.close, size: 16)
-                          : const Icon(Icons.tune, size: 16),
-                      onSelected: (_) => _showFilterDialog(context),
-                      backgroundColor: _selectedRegion != null
-                          ? theme.primaryColor.withOpacity(0.2)
-                          : null,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+// Minimalistic Header Section with Expandable Search
+Container(
+  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+  decoration: BoxDecoration(
+    color: theme.cardColor,
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.05),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  ),
+  child: Row(
+    children: [
+      // Title
+      Expanded(
+        child: Text(
+          'Store Management',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-
+        ),
+      ),
+      
+      // Expandable Search Field
+      AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: _isSearchExpanded ? 240 : 40,
+        child: _isSearchExpanded
+            ? Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[900] : AppColors.dividerColorDark.withOpacity(.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? Colors.grey[800]!
+                        : AppColors.productsCard.withOpacity(.1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Search Icon
+                    IconButton(
+                      icon: const Icon(Icons.search, color: Colors.grey, size: 40),
+                      onPressed: () {
+                        // Already expanded, focus on text field
+                        _searchFocusNode.requestFocus();
+                      },
+                    ),
+                    // Search TextField
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        decoration: const InputDecoration(
+                          hintText: 'Search stores...',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.only(right: 16),
+                        ),
+                        onChanged: (value) {
+                          context.read<StoresBloc>().add(SearchStores(value));
+                        },
+                      ),
+                    ),
+                    // Close Button when expanded
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                      onPressed: () {
+                        setState(() {
+                          _isSearchExpanded = false;
+                          _searchController.clear();
+                          context.read<StoresBloc>().add(SearchStores(''));
+                        });
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              )
+            : IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.search, color: Colors.grey),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isSearchExpanded = true;
+                    // Add a small delay to focus after animation starts
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      _searchFocusNode.requestFocus();
+                    });
+                  });
+                },
+              ),
+      ),
+      
+      const SizedBox(width: 12),
+      
+      // Region Filter
+      FilterChip(
+        label: Text(_selectedRegion ?? 'All Regions'),
+        avatar: _selectedRegion != null
+            ? const Icon(Icons.close, size: 16)
+            : const Icon(Icons.tune, size: 16),
+        onSelected: (_) => _showFilterDialog(context),
+        backgroundColor: _selectedRegion != null
+            ? theme.primaryColor.withOpacity(0.2)
+            : null,
+        visualDensity: VisualDensity.compact,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+      ),
+      
+      const SizedBox(width: 12),
+      
+      // View Toggle
+      IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.primaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _gridView ? Icons.view_list : Icons.grid_view,
+            color: theme.primaryColor,
+          ),
+        ),
+        onPressed: () {
+          setState(() {
+            _gridView = !_gridView;
+          });
+        },
+      ),
+      
+      const SizedBox(width: 8),
+      
+      // Add Store Button
+      IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.primaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.add, color: theme.primaryColor),
+        ),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const AddStoreScreen()),
+        ),
+      ),
+    ],
+  ),
+),
           // Stats Overview
           BlocBuilder<StoresBloc, StoresState>(
             builder: (context, state) {
