@@ -548,53 +548,102 @@ Container(
                         return Future.delayed(const Duration(seconds: 1));
                       },
                       child: _gridView
-                          ? GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 1.2,
-                              ),
-                              itemCount: storesToDisplay.length,
-                              itemBuilder: (context, index) {
-                                final store = storesToDisplay[index];
-                                return StoreCard(
-                                  store: store,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          StoreDetailsScreen(storeId: store.id),
+                          ? 
+                            LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final crossAxisCount = constraints.maxWidth ~/
+                                      100;
+                                  return GridView.builder(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: crossAxisCount.clamp(
+                                          1, 4), 
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                      childAspectRatio: 0.8, 
                                     ),
-                                  ).then((_) {
-                                    context
-                                        .read<StoresBloc>()
-                                        .add(const RefreshStores());
-                                  }),
-                                );
-                              },
-                            )
+                                    itemCount: storesToDisplay.length,
+                                    itemBuilder: (context, index) {
+                                      final store = storesToDisplay[index];
+                                      return StoreCard(
+                                        store: store,
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                StoreDetailsScreen(
+                                                    storeId: store.id),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              )
                           : ListView.builder(
-                              itemCount: storesToDisplay.length,
-                              itemBuilder: (context, index) {
-                                final store = storesToDisplay[index];
-                                return StoreListTile(
-                                  store: store,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          StoreDetailsScreen(storeId: store.id),
+                                itemCount: storesToDisplay.length,
+                                itemBuilder: (context, index) {
+                                  final store = storesToDisplay[index];
+                                  final activeTills = store.tills
+                                      .where((t) => t.isOccupied)
+                                      .length;
+
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                      leading: Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          image: store.imageUrl != null
+                                              ? DecorationImage(
+                                                  image: NetworkImage(
+                                                      store.imageUrl!),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : null,
+                                          color: Colors.grey[100],
+                                        ),
+                                        child: store.imageUrl == null
+                                            ? Icon(Icons.store,
+                                                color: Colors.grey[400])
+                                            : null,
+                                      ),
+                                      title: Text(
+                                        store.name,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      subtitle: Text(
+                                        '${activeTills}/${store.tills.length} tills active',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
+                                      trailing: Icon(
+                                        Icons.chevron_right,
+                                        color: Theme.of(context).disabledColor,
+                                      ),
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              StoreDetailsScreen(
+                                                  storeId: store.id),
+                                        ),
+                                      ),
                                     ),
-                                  ).then((_) {
-                                    context
-                                        .read<StoresBloc>()
-                                        .add(const RefreshStores());
-                                  }),
-                                );
-                              },
-                            ),
+                                  );
+                                },
+                              )
                     );
                   }
 
@@ -604,128 +653,6 @@ Container(
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class StoreListTile extends StatefulWidget {
-  final dynamic store;
-  final VoidCallback onTap;
-
-  const StoreListTile({
-    required this.store,
-    required this.onTap,
-    super.key,
-  });
-
-  @override
-  State<StoreListTile> createState() => _StoreListTileState();
-}
-
-class _StoreListTileState extends State<StoreListTile> {
-  bool isHovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => isHovering = true),
-      onExit: (_) => setState(() => isHovering = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: isHovering
-              ? Theme.of(context).hoverColor
-              : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        margin: const EdgeInsets.only(bottom: 8),
-        child: ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          onTap: widget.onTap,
-          leading: Hero(
-            tag: 'store_image_${widget.store.id}',
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                image: widget.store.imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(widget.store.imageUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                color: Colors.grey[200],
-              ),
-              child: widget.store.imageUrl == null
-                  ? Icon(
-                      Icons.store,
-                      size: 30,
-                      color: Colors.grey[400],
-                    )
-                  : null,
-            ),
-          ),
-          title: Hero(
-            tag: 'store_name_${widget.store.id}',
-            child: Text(
-              widget.store.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ),
-          subtitle: Text(
-            widget.store.address ?? 'No address provided',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.point_of_sale,
-                          size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${widget.store.tills.length} tills',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 16,
-                        color: Colors.green[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${widget.store.tills.where((t) => t.isOccupied).length} active',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.green[700],
-                            ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
       ),
     );
   }

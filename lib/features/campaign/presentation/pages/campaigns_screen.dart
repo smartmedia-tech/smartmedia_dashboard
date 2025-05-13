@@ -24,7 +24,6 @@ class _CampaignScreenState extends State<CampaignScreen> {
 
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
-  // CampaignStatus? _filterStatus;
   final List<String> _statusOptions = [
     'All',
     'Active',
@@ -34,12 +33,26 @@ class _CampaignScreenState extends State<CampaignScreen> {
   ];
   String _selectedStatus = 'All';
   bool _isSearchExpanded = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<CampaignBloc>().add(const LoadCampaigns());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load campaigns only once when the widget is first built
+    if (!_isInitialized) {
+      final state = context.read<CampaignBloc>().state;
+      // Only load campaigns if they haven't been loaded already or if there was an error
+      if (state is! CampaignsLoaded || state.campaigns.isEmpty) {
+        context.read<CampaignBloc>().add(const LoadCampaigns());
+      }
+      _isInitialized = true;
+    }
   }
 
   @override
@@ -471,7 +484,6 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   ),
                 );
               }
-              // Continue with the campaign update even if image upload fails
             }
           }
 

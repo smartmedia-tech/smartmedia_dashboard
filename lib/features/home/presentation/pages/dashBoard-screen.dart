@@ -49,7 +49,7 @@ class DashboardScreen extends StatelessWidget {
                       isDarkMode: isDarkMode,
                     ),
                     StatCard(
-                      title: 'Active Merchants',
+                      title: 'Active clients',
                       value: '156',
                       icon: Icons.store,
                       color: Colors.blue,
@@ -259,21 +259,21 @@ class RecentActivityCard extends StatelessWidget {
             child: ListView(
               children: const [
                 ActivityItem(
-                  title: 'New Order #1234',
+                  title: 'New campaign #1234',
                   subtitle: 'From Merchant: Wine Hub',
                   time: '2 mins ago',
                   icon: Icons.shopping_cart,
                   color: Colors.blue,
                 ),
                 ActivityItem(
-                  title: 'Payment Received',
-                  subtitle: 'Order #1233 - ₦45,000',
+                  title: 'image Received',
+                  subtitle: 'campaign #1233 - ₦45,000',
                   time: '15 mins ago',
                   icon: Icons.payment,
                   color: Colors.green,
                 ),
                 ActivityItem(
-                  title: 'New Merchant Request',
+                  title: 'New store Request',
                   subtitle: 'Beer Paradise Ltd.',
                   time: '1 hour ago',
                   icon: Icons.store,
