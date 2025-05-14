@@ -234,9 +234,9 @@ class _StoresScreenState extends State<StoresScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
       body: Column(
         children: [
-// Minimalistic Header Section with Expandable Search
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
@@ -373,7 +373,6 @@ class _StoresScreenState extends State<StoresScreen> {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
-                     
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

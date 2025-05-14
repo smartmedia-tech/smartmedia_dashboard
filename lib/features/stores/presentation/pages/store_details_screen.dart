@@ -5,7 +5,6 @@ import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stor
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_state.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/edit_store_bottom_sheet.dart';
-import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/store_metrics_card.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/tills_management_panel.dart';
 
 class StoreDetailsScreen extends StatelessWidget {
@@ -20,7 +19,6 @@ class StoreDetailsScreen extends StatelessWidget {
         if (state is StoresLoaded) {
           final store = state.stores.firstWhere((s) => s.id == storeId);
           return Scaffold(
-           
             body: Column(
               children: [
                 _StoreHeader(store: store),
@@ -54,7 +52,6 @@ class _StoreHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-       
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -164,7 +161,6 @@ class _StoreHeader extends StatelessWidget {
                   side: BorderSide(color: Theme.of(context).primaryColor),
                 ),
               ),
-         
             ],
           ),
         ],
@@ -302,7 +298,7 @@ class _StoreMetricsSection extends StatelessWidget {
               color: Colors.blue,
             ),
             const Divider(height: 24),
-            _MetricTile(
+            const _MetricTile(
               icon: Icons.access_time,
               title: 'Last Activity',
               value: '2h ago', // TODO: Replace with actual data

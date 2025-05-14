@@ -31,7 +31,7 @@ class TillsManagementPanel extends StatelessWidget {
             children: [
               // Header with tabs
               _TillsHeader(store: store),
-          
+
               const SizedBox(height: 24),
 
               // Tills grid
@@ -200,7 +200,7 @@ class _TillCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => TillOptionsBottomSheet.show(context, storeId, till),
+      onTap: () => TillOptionsDialog.show(context, storeId, till),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,

@@ -8,11 +8,11 @@ import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/st
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_state.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/pages/till_images_screen.dart';
 
-class TillOptionsBottomSheet extends StatelessWidget {
+class TillOptionsDialog extends StatelessWidget {
   final String storeId;
   final Till till;
 
-  const TillOptionsBottomSheet({
+  const TillOptionsDialog({
     super.key,
     required this.storeId,
     required this.till,
@@ -22,30 +22,35 @@ class TillOptionsBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<StoresBloc, StoresState>(
       listener: (context, state) {
-        if (state is StoresError) {
+        if (state is StoresError || state is TillImagesError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
-        }
-        if (state is TillImagesError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
+            SnackBar(content: Text((state as dynamic).message)),
           );
         }
       },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 20),
-            _buildActionButtons(context),
-          ],
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildHeader(context),
+                const Divider(height: 30),
+                _buildActionCards(context),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -54,32 +59,32 @@ class TillOptionsBottomSheet extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: till.isOccupied ? Colors.red.shade50 : Colors.green.shade50,
-            shape: BoxShape.circle,
-          ),
+        CircleAvatar(
+          radius: 28,
+          backgroundColor:
+              till.isOccupied ? Colors.red.shade100 : Colors.green.shade100,
           child: Icon(
             till.isOccupied ? Icons.person : Icons.person_outline,
+            size: 32,
             color: till.isOccupied ? Colors.red : Colors.green,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 20),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Till ${till.number}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              'Till #${till.number}',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
+            const SizedBox(height: 4),
             Text(
               till.isOccupied ? 'Occupied' : 'Available',
               style: TextStyle(
                 color: till.isOccupied ? Colors.red : Colors.green,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -88,60 +93,67 @@ class TillOptionsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionCards(BuildContext context) {
     return Column(
       children: [
-        _buildActionButton(
+        _buildActionCard(
           icon: till.isOccupied
               ? Icons.check_circle_outline
               : Icons.remove_circle_outline,
-          label: till.isOccupied ? 'Mark Available' : 'Mark Occupied',
+          label: till.isOccupied ? 'Mark as Available' : 'Mark as Occupied',
           color: till.isOccupied ? Colors.green : Colors.red,
-          onPressed: () => _updateStatus(context),
+          onTap: () => _updateStatus(context),
         ),
         const SizedBox(height: 12),
-        _buildActionButton(
+        _buildActionCard(
           icon: Icons.image_outlined,
-          label: 'Add Image',
+          label: 'Add Till Image',
           color: Colors.blue,
-          onPressed: () => _addImage(context),
+          onTap: () => _addImage(context),
         ),
-        const SizedBox(height: 12),
-        if (till.imageUrls.isNotEmpty)
-          _buildActionButton(
+        if (till.imageUrls.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _buildActionCard(
             icon: Icons.photo_library_outlined,
-            label: 'View Images',
+            label: 'View Till Images',
             color: Colors.purple,
-            onPressed: () => _viewImages(context),
+            onTap: () => _viewImages(context),
           ),
+        ],
       ],
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildActionCard({
     required IconData icon,
     required String label,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback onTap,
   }) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.1),
-        foregroundColor: color,
-        elevation: 0,
-        minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Material(
+      color: color.withOpacity(0.05),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: color.withOpacity(0.1),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      onPressed: onPressed,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
       ),
     );
   }
@@ -158,24 +170,20 @@ class TillOptionsBottomSheet extends StatelessWidget {
   }
 
   Future<void> _addImage(BuildContext context) async {
-    // Get the bloc reference first
-    final bloc = context.read<StoresBloc>();
-
-    // Then pop the bottom sheet
     Navigator.pop(context);
 
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      // Use the stored bloc reference
-      bloc.add(
-        UploadTillImage(
-          storeId: storeId,
-          tillId: till.id,
-          imageFile: File(pickedFile.path),
-        ),
-      );
+      final file = File(pickedFile.path);
+      context.read<StoresBloc>().add(
+            UploadTillImage(
+              storeId: storeId,
+              tillId: till.id,
+              imageFile: file,
+            ),
+          );
     }
   }
 
@@ -193,14 +201,9 @@ class TillOptionsBottomSheet extends StatelessWidget {
   }
 
   static void show(BuildContext context, String storeId, Till till) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => TillOptionsBottomSheet(
-        storeId: storeId,
-        till: till,
-      ),
+      builder: (_) => TillOptionsDialog(storeId: storeId, till: till),
     );
   }
 }
