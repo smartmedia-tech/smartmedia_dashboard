@@ -21,7 +21,7 @@ jobs:
         run: flutter pub get
         
       - name: Build web
-        run: flutter build web --base-href "/smartmedia_dashboard/"
+        run: flutter build web --base-href "/smartmedia_dashboard/" --release
         
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
