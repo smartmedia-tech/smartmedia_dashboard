@@ -68,7 +68,7 @@ class StoreCard extends StatelessWidget {
                             ),
                             errorWidget: (_, __, ___) => Center(
                               child: Icon(
-                                Icons.store_mall_directory,
+                                Icons.error_outline,
                                 size: 40,
                                 color: Colors.grey[300],
                               ),

@@ -372,8 +372,8 @@ class _StoresScreenState extends State<StoresScreen> {
                 IconButton(
                   icon: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
+                    decoration: const BoxDecoration(
+                     
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -390,11 +390,10 @@ class _StoresScreenState extends State<StoresScreen> {
 
                 const SizedBox(width: 8),
 
-             IconButton(
+                IconButton(
                   icon: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.add, color: theme.primaryColor),
@@ -531,7 +530,7 @@ class _StoresScreenState extends State<StoresScreen> {
                                   color: Colors.grey,
                                 )),
                             const SizedBox(height: 24),
-              IconButton(
+                            IconButton(
                               icon: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(

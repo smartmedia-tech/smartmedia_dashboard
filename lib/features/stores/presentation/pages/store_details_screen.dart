@@ -7,6 +7,7 @@ import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/st
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/edit_store_bottom_sheet.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/store_metrics_card.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/tills_management_panel.dart';
+
 class StoreDetailsScreen extends StatelessWidget {
   final String storeId;
 
@@ -19,26 +20,19 @@ class StoreDetailsScreen extends StatelessWidget {
         if (state is StoresLoaded) {
           final store = state.stores.firstWhere((s) => s.id == storeId);
           return Scaffold(
-            body: LayoutBuilder(
-              builder: (context, constraints) {
-                // Check if we're on a desktop/large screen
-                final isDesktop = constraints.maxWidth >= 1100;
+           
+            body: Column(
+              children: [
+                _StoreHeader(store: store),
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // App Bar with store header
-                    _buildStoreHeaderBar(context, store, isDesktop),
-
-                    // Main content area
-                    Expanded(
-                      child: isDesktop
-                          ? _buildDesktopLayout(context, store)
-                          : _buildTabletLayout(context, store),
-                    ),
-                  ],
-                );
-              },
+                // Main content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: _StoreContent(store: store, storeId: storeId),
+                  ),
+                ),
+              ],
             ),
           );
         }
@@ -48,74 +42,109 @@ class StoreDetailsScreen extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildStoreHeaderBar(
-      BuildContext context, Store store, bool isDesktop) {
+class _StoreHeader extends StatelessWidget {
+  final Store store;
+
+  const _StoreHeader({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.05),
+       
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
         children: [
-          // Store Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 200,
-              height: 100,
+          // Store image
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
               child: store.imageUrl != null
                   ? CachedNetworkImage(
                       imageUrl: store.imageUrl!,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[200],
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[100],
                         child: const Center(
-                          child: Icon(Icons.store, size: 48),
+                          child: Icon(Icons.store, size: 32),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[100],
+                        child: const Center(
+                          child: Icon(Icons.store, size: 32),
                         ),
                       ),
                     )
                   : Container(
-                      color: Colors.grey[200],
+                      color: Colors.grey[100],
                       child: const Center(
-                        child: Icon(Icons.store, size: 48),
+                        child: Icon(Icons.store, size: 32),
                       ),
                     ),
             ),
           ),
           const SizedBox(width: 24),
 
-          // Store Info
+          // Store info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  store.name,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Text(
+                      store.name,
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      child: Text(
+                        store.region,
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-
-                // Info row
-                Wrap(
-                  spacing: 24,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    _buildInfoItem(
-                        context, Icons.map_outlined, 'Region: ${store.region}'),
-                    _buildInfoItem(context, Icons.pin_outlined,
-                        'Site No: ${store.siteNumber}'),
-                    _buildInfoItem(context, Icons.calendar_today_outlined,
-                        'Created: ${_formatDate(store.createdAt)}'),
+                    _InfoChip(
+                      icon: Icons.numbers,
+                      text: 'Site #${store.siteNumber}',
+                    ),
+                    const SizedBox(width: 12),
+                    _InfoChip(
+                      icon: Icons.calendar_today,
+                      text: 'Created ${_formatDate(store.createdAt)}',
+                    ),
                   ],
                 ),
               ],
@@ -123,186 +152,284 @@ class StoreDetailsScreen extends StatelessWidget {
           ),
 
           // Actions
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Edit Store'),
-            onPressed: () => EditStoreDialog.show(context, store),
+          Row(
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit Store'),
+                onPressed: () => EditStoreDialog.show(context, store),
+                style: OutlinedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  side: BorderSide(color: Theme.of(context).primaryColor),
+                ),
+              ),
+         
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopLayout(BuildContext context, Store store) {
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()}y ago';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()}mo ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else {
+      return 'Just now';
+    }
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(color: Colors.grey[800]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoreContent extends StatelessWidget {
+  final Store store;
+  final String storeId;
+
+  const _StoreContent({required this.store, required this.storeId});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left panel - Store metrics and information
-        Expanded(
-          flex: 1,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Store Metrics',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
+        // Left sidebar with metrics
+        SizedBox(
+          width: 300,
+          child: Column(
+            children: [
+              // Store metrics
+              _StoreMetricsSection(store: store),
+              const SizedBox(height: 24),
 
-                // Metrics cards
-                StoreMetricsCard(
-                  title: 'Total Tills',
-                  value: '${store.totalTills}',
-                  icon: Icons.point_of_sale_outlined,
-                  color: Colors.deepPurple,
-                ),
-                const SizedBox(height: 16),
-                StoreMetricsCard(
-                  title: 'Active Tills',
-                  value: '${store.occupiedTills}',
-                  icon: Icons.bolt_outlined,
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 16),
-                StoreMetricsCard(
-                  title: 'Available Tills',
-                  value: '${store.availableTills}',
-                  icon: Icons.check_circle_outline,
-                  color: Colors.blue,
-                ),
-                const SizedBox(height: 16),
-                StoreMetricsCard(
-                  title: 'Last Activity',
-                  value: '2h ago', // You would calculate this
-                  icon: Icons.access_time_outlined,
-                  color: Colors.orange,
-                ),
-
-                const SizedBox(height: 32),
-
-                // Additional store information section
-                Text(
-                  'Store Information',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-
-                // Additional info cards would go here
-                // These could be created as separate components
-              ],
-            ),
+              // Additional info
+              _AdditionalInfoSection(store: store),
+            ],
           ),
         ),
+        const SizedBox(width: 24),
 
-        // Divider
-        const VerticalDivider(width: 1),
-
-        // Right panel - Tills management
+        // Main content area
         Expanded(
-          flex: 2,
           child: TillsManagementPanel(store: store, storeId: storeId),
         ),
       ],
     );
   }
+}
 
-  Widget _buildTabletLayout(BuildContext context, Store store) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Metrics section
-          Text(
-            'Store Metrics',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 16),
+class _StoreMetricsSection extends StatelessWidget {
+  final Store store;
 
-          // Metrics grid
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 2.5,
-            children: [
-              StoreMetricsCard(
-                title: 'Total Tills',
-                value: '${store.totalTills}',
-                icon: Icons.point_of_sale_outlined,
-                color: Colors.deepPurple,
-              ),
-              StoreMetricsCard(
-                title: 'Active Tills',
-                value: '${store.occupiedTills}',
-                icon: Icons.bolt_outlined,
-                color: Colors.green,
-              ),
-              StoreMetricsCard(
-                title: 'Available Tills',
-                value: '${store.availableTills}',
-                icon: Icons.check_circle_outline,
-                color: Colors.blue,
-              ),
-              StoreMetricsCard(
-                title: 'Last Activity',
-                value: '2h ago', // You would calculate this
-                icon: Icons.access_time_outlined,
-                color: Colors.orange,
-              ),
-            ],
-          ),
+  const _StoreMetricsSection({required this.store});
 
-          const SizedBox(height: 32),
-
-          // Tills management section
-          Text(
-            'Tills Management',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 16),
-
-          // Tills panel
-          TillsManagementPanel(store: store, storeId: storeId),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'STORE METRICS',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            _MetricTile(
+              icon: Icons.point_of_sale,
+              title: 'Total Tills',
+              value: store.totalTills.toString(),
+              color: Colors.deepPurple,
+            ),
+            const Divider(height: 24),
+            _MetricTile(
+              icon: Icons.bolt,
+              title: 'Active Tills',
+              value: store.occupiedTills.toString(),
+              color: Colors.green,
+            ),
+            const Divider(height: 24),
+            _MetricTile(
+              icon: Icons.check_circle,
+              title: 'Available Tills',
+              value: store.availableTills.toString(),
+              color: Colors.blue,
+            ),
+            const Divider(height: 24),
+            _MetricTile(
+              icon: Icons.access_time,
+              title: 'Last Activity',
+              value: '2h ago', // TODO: Replace with actual data
+              color: Colors.orange,
+            ),
+          ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildInfoItem(BuildContext context, IconData icon, String text) {
+class _MetricTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color color;
+
+  const _MetricTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: Colors.grey[600]),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[800],
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 13,
               ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _AdditionalInfoSection extends StatelessWidget {
+  final Store store;
+
+  const _AdditionalInfoSection({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'STORE INFORMATION',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            _InfoRow(icon: Icons.location_on, text: store.region),
+            const SizedBox(height: 12),
+            _InfoRow(icon: Icons.numbers, text: 'Site #${store.siteNumber}'),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.calendar_today,
+              text: 'Created ${_formatDate(store.createdAt)}',
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
   }
 }

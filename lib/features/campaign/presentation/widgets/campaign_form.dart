@@ -184,7 +184,8 @@ class _CampaignFormDialogState extends State<CampaignFormDialog>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: isDarkMode ? AppColors.dividerColorDark : Colors.transparent,
+      backgroundColor:
+          isDarkMode ? AppColors.dividerColorDark : Colors.transparent,
       elevation: 0,
       insetPadding: EdgeInsets.zero,
       child: BackdropFilter(
@@ -336,7 +337,8 @@ class _CampaignFormDialogState extends State<CampaignFormDialog>
                                                 : widget.campaign == null
                                                     ? 'Create Campaign'
                                                     : 'Update Campaign',
-                                            style: const TextStyle(fontSize: 16),
+                                            style:
+                                                const TextStyle(fontSize: 16),
                                           ),
                                           if (!_isLoading) ...[
                                             const SizedBox(width: 8),
@@ -724,9 +726,7 @@ class _CampaignFormDialogState extends State<CampaignFormDialog>
               ),
           const SizedBox(height: 24),
           Text(
-            widget.campaign == null
-                ? 'Campaign Created!'
-                : 'Campaign Updated!',
+            widget.campaign == null ? 'Campaign Created!' : 'Campaign Updated!',
             style: textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: primaryColor,
@@ -809,7 +809,8 @@ class _DatePickerField extends StatelessWidget {
             final date = await showDatePicker(
               context: context,
               initialDate: value,
-              firstDate: minDate ?? DateTime.now().subtract(const Duration(days: 30)),
+              firstDate:
+                  minDate ?? DateTime.now().subtract(const Duration(days: 30)),
               lastDate: DateTime(2100),
             );
             if (date != null) onSelect(date);

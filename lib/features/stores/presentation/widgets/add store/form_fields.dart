@@ -46,8 +46,6 @@ class _StoreFormFieldsState extends State<StoreFormFields> {
 
   @override
   Widget build(BuildContext context) {
-   
-
     return Column(
       children: [
         _buildTextField(

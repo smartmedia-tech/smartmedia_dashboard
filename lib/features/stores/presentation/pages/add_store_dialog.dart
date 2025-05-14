@@ -7,7 +7,6 @@ import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/st
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_event.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_state.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/add%20store/form_fields.dart';
-import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/add%20store/province_dropdown.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/add%20store/store_image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -120,7 +119,8 @@ class _AddStoreDialogState extends State<AddStoreDialog>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor:isDarkMode?AppColors.dividerColorDark: Colors.transparent,
+      backgroundColor:
+          isDarkMode ? AppColors.dividerColorDark : Colors.transparent,
       elevation: 0,
       insetPadding: EdgeInsets.zero,
       child: BackdropFilter(
@@ -140,7 +140,7 @@ class _AddStoreDialogState extends State<AddStoreDialog>
               width: 900,
               height: 600,
               decoration: BoxDecoration(
-                color:isDarkMode?AppColors.dividerColorDark: Colors.white,
+                color: isDarkMode ? AppColors.dividerColorDark : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
