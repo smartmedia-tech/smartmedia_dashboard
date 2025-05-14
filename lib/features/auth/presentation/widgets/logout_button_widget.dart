@@ -5,7 +5,7 @@ import 'package:smartmedia_campaign_manager/features/auth/presentation/bloc/auth
 import 'package:smartmedia_campaign_manager/features/auth/presentation/bloc/auth_event.dart';
 import 'package:smartmedia_campaign_manager/features/auth/presentation/bloc/auth_state.dart';
 import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/logout_dialog.dart';
-import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/signUp_dialog.dart';
+import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/signup_dialog.dart';
 
 class LogOutButton extends StatefulWidget {
   const LogOutButton({super.key});

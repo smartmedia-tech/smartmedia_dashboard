@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
-import '../../features/auth/presentation/widgets/signUp_dialog.dart';
+import '../features/auth/presentation/widgets/signup_dialog.dart';
 
 class Wrapper extends StatefulWidget {
   const Wrapper({super.key});

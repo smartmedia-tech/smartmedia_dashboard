@@ -7,7 +7,7 @@ import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
 import 'package:smartmedia_campaign_manager/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:smartmedia_campaign_manager/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/auth/presentation/bloc/auth_state.dart';
-import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/signUp_dialog.dart';
+import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/signup_dialog.dart';
 import 'package:smartmedia_campaign_manager/features/auth/presentation/widgets/profile_dialog.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
