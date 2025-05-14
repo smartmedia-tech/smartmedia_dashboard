@@ -24,10 +24,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Update base href in index.html
-        run: |
-          sed -i 's|<base href="\$FLUTTER_BASE_HREF">|<base href="/smartmedia_campaign_manager/">|' web/index.html
-
       - name: Build Flutter web
         run: flutter build web --release --base-href /smartmedia_campaign_manager/ --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
 
