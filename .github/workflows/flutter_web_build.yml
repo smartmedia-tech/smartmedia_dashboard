@@ -7,47 +7,35 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          path: |
-            /opt/hostedtoolcache/flutter
-            .pub-cache
-            build/web
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
-      
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+          channel: stable
           cache: true
-      
-      - name: Enable web
+
+      - name: Enable web support
         run: flutter config --enable-web
-      
-      - name: Get dependencies
+
+      - name: Install dependencies
         run: flutter pub get
-      
-      - name: Fix index.html base href
+
+      - name: Update base href in index.html
         run: |
-          sed -i 's/<base href="\/">/<base href="\/smartmedia_campaign_manager\/">/' web/index.html
-      
-      - name: Build web
-        run: flutter build web --release --base-href /smartmedia_campaign_manager/ --web-renderer canvaskit --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
-      
-      - name: Create .nojekyll file
+          sed -i 's|<base href="\$FLUTTER_BASE_HREF">|<base href="/smartmedia_campaign_manager/">|' web/index.html
+
+      - name: Build Flutter web
+        run: flutter build web --release --base-href /smartmedia_campaign_manager/ --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
+
+      - name: Create .nojekyll
         run: touch build/web/.nojekyll
-      
-      - name: Verify build
-        run: |
-          ls -la build/web
-          grep -r "smartmedia_campaign_manager" build/web/index.html
-      
-      - name: Deploy
+
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          keep_files: true
