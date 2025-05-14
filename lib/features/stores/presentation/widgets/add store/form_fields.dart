@@ -29,7 +29,6 @@ class _StoreFormFieldsState extends State<StoreFormFields> {
   @override
   void initState() {
     super.initState();
-    // Add listeners to all focus nodes
     for (var node in _focusNodes) {
       node.addListener(() {
         setState(() {});
@@ -47,6 +46,8 @@ class _StoreFormFieldsState extends State<StoreFormFields> {
 
   @override
   Widget build(BuildContext context) {
+   
+
     return Column(
       children: [
         _buildTextField(
@@ -58,8 +59,6 @@ class _StoreFormFieldsState extends State<StoreFormFields> {
           validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
           delay: 0,
         ),
-
-        // Province dropdown
         Padding(
           padding: const EdgeInsets.only(bottom: 20),
           child: ProvinceDropdown(
@@ -69,19 +68,20 @@ class _StoreFormFieldsState extends State<StoreFormFields> {
             isFocused: _focusNodes[1].hasFocus,
           ),
         ).animate().fadeIn(delay: const Duration(milliseconds: 100)).slideX(
-            begin: 0.05, end: 0, delay: const Duration(milliseconds: 100)),
-
+              begin: 0.05,
+              end: 0,
+              delay: const Duration(milliseconds: 100),
+            ),
         _buildTextField(
           controller: widget.siteNumberController,
           focusNode: _focusNodes[2],
           label: 'Site Number',
           icon: Icons.tag_rounded,
+          hint: 'e.g., S425',
           validator: (value) =>
               value!.isEmpty ? 'Please enter a site number' : null,
-          hint: 'e.g., S425',
           delay: 200,
         ),
-
         _buildTextField(
           controller: widget.tillCountController,
           focusNode: _focusNodes[3],
@@ -113,57 +113,64 @@ class _StoreFormFieldsState extends State<StoreFormFields> {
     required int delay,
   }) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
-    final bool isFocused = focusNode.hasFocus;
+    final isFocused = focusNode.hasFocus;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Animated label
           Text(
             label,
             style: TextStyle(
               fontSize: 14,
               fontWeight: isFocused ? FontWeight.w600 : FontWeight.w500,
               color: isFocused
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey.shade700,
+                  ? colorScheme.primary
+                  : theme.textTheme.bodyMedium!.color!.withOpacity(0.7),
             ),
           ),
-
           const SizedBox(height: 8),
-
-          // Text field
           TextFormField(
             controller: controller,
             focusNode: focusNode,
             keyboardType: keyboardType,
             validator: validator,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              hintStyle: TextStyle(
+                color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade400,
+                fontSize: 14,
+              ),
               filled: true,
-              fillColor: isDarkMode ? AppColors.cardColorDark : Colors.white,
+              fillColor:
+                  isDarkMode ? AppColors.cardColorDark : colorScheme.surface,
               prefixIcon: Icon(
                 icon,
                 color: isFocused
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey.shade500,
+                    ? colorScheme.primary
+                    : theme.iconTheme.color?.withOpacity(0.6),
                 size: 20,
               ).animate(target: isFocused ? 1 : 0).scaleXY(
-                  begin: 1,
-                  end: 1.2,
-                  duration: const Duration(milliseconds: 200)),
+                    begin: 1,
+                    end: 1.2,
+                    duration: const Duration(milliseconds: 200),
+                  ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade200),
+                borderSide: BorderSide(
+                  color:
+                      isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: Theme.of(context).primaryColor, width: 1.5),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),

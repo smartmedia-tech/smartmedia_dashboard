@@ -20,8 +20,6 @@ class CampaignScreen extends StatefulWidget {
 }
 
 class _CampaignScreenState extends State<CampaignScreen> {
-  Campaign? _selectedCampaign;
-
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
   final List<String> _statusOptions = [
@@ -367,9 +365,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                       onDelete: (id) => _showDeleteConfirmation(id),
                       onEdit: (campaign) => _showEditDialog(campaign),
                       onViewDetails: (campaign) {
-                        setState(() {
-                          _selectedCampaign = campaign;
-                        });
+                        setState(() {});
                       },
                     ),
                     childCount: campaigns.length,

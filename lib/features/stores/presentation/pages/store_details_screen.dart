@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_state.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/edit_store_bottom_sheet.dart';
-import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/tills_grid.dart';
-
+import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/store_metrics_card.dart';
+import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/tills_management_panel.dart';
 class StoreDetailsScreen extends StatelessWidget {
   final String storeId;
 
@@ -17,147 +18,27 @@ class StoreDetailsScreen extends StatelessWidget {
       builder: (context, state) {
         if (state is StoresLoaded) {
           final store = state.stores.firstWhere((s) => s.id == storeId);
-
           return Scaffold(
-            body: CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  expandedHeight: 200,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: store.imageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: store.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.store, size: 48),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: Icon(Icons.store, size: 48),
-                            ),
-                          ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.all(24),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  store.name,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                                // if (store.address != null) ...[
-                                //   const SizedBox(height: 8),
-                                //   Row(
-                                //     children: [
-                                //       Icon(Icons.location_on_outlined,
-                                //           size: 16, color: Colors.grey),
-                                //       const SizedBox(width: 8),
-                                //       Text(store.address!,
-                                //           style: Theme.of(context)
-                                //               .textTheme
-                                //               .bodyMedium),
-                                //     ],
-                                //   ),
-                                // ],
-                                ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.map_outlined,
-                                          size: 16, color: Colors.grey),
-                                      const SizedBox(width: 8),
-                                      Text(store.region,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .primaryColor
-                                    .withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(Icons.edit_outlined,
-                                  color: Theme.of(context).primaryColor),
-                            ),
-                            onPressed: () => showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (_) =>
-                                  EditStoreBottomSheet(store: store),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
+            body: LayoutBuilder(
+              builder: (context, constraints) {
+                // Check if we're on a desktop/large screen
+                final isDesktop = constraints.maxWidth >= 1100;
 
-                      // Stats Cards
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          _buildDetailCard(
-                            context,
-                            'Total Tills',
-                            '${store.tills.length}',
-                            Icons.point_of_sale_outlined,
-                          ),
-                          _buildDetailCard(
-                            context,
-                            'Active Tills',
-                            '${store.tills.where((t) => t.isOccupied).length}',
-                            Icons.bolt_outlined,
-                            color: Colors.green,
-                          ),
-                          _buildDetailCard(
-                            context,
-                            'Last Activity',
-                            '2h ago', // You would calculate this
-                            Icons.access_time_outlined,
-                            color: Colors.orange,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // App Bar with store header
+                    _buildStoreHeaderBar(context, store, isDesktop),
 
-                      // Tills Section
-                      Text('Tills Management',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  )),
-                      const SizedBox(height: 16),
-                      TillsGrid(store: store, storeId: storeId),
-                    ]),
-                  ),
-                ),
-              ],
+                    // Main content area
+                    Expanded(
+                      child: isDesktop
+                          ? _buildDesktopLayout(context, store)
+                          : _buildTabletLayout(context, store),
+                    ),
+                  ],
+                );
+              },
             ),
           );
         }
@@ -168,15 +49,12 @@ class StoreDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailCard(
-      BuildContext context, String title, String value, IconData icon,
-      {Color color = Colors.deepPurple}) {
+  Widget _buildStoreHeaderBar(
+      BuildContext context, Store store, bool isDesktop) {
     return Container(
-      width: 180,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).primaryColor.withOpacity(0.05),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -185,35 +63,246 @@ class StoreDetailsScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 18, color: color),
-              ),
-              const Spacer(),
-              const Icon(Icons.more_vert, size: 18, color: Colors.grey),
-            ],
+          // Store Image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 200,
+              height: 100,
+              child: store.imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: store.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(Icons.store, size: 48),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.store, size: 48),
+                      ),
+                    ),
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(title,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                  )),
-          const SizedBox(height: 4),
-          Text(value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  )),
+          const SizedBox(width: 24),
+
+          // Store Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  store.name,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+
+                // Info row
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 8,
+                  children: [
+                    _buildInfoItem(
+                        context, Icons.map_outlined, 'Region: ${store.region}'),
+                    _buildInfoItem(context, Icons.pin_outlined,
+                        'Site No: ${store.siteNumber}'),
+                    _buildInfoItem(context, Icons.calendar_today_outlined,
+                        'Created: ${_formatDate(store.createdAt)}'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Actions
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Edit Store'),
+            onPressed: () => EditStoreDialog.show(context, store),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildDesktopLayout(BuildContext context, Store store) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left panel - Store metrics and information
+        Expanded(
+          flex: 1,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Store Metrics',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 16),
+
+                // Metrics cards
+                StoreMetricsCard(
+                  title: 'Total Tills',
+                  value: '${store.totalTills}',
+                  icon: Icons.point_of_sale_outlined,
+                  color: Colors.deepPurple,
+                ),
+                const SizedBox(height: 16),
+                StoreMetricsCard(
+                  title: 'Active Tills',
+                  value: '${store.occupiedTills}',
+                  icon: Icons.bolt_outlined,
+                  color: Colors.green,
+                ),
+                const SizedBox(height: 16),
+                StoreMetricsCard(
+                  title: 'Available Tills',
+                  value: '${store.availableTills}',
+                  icon: Icons.check_circle_outline,
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 16),
+                StoreMetricsCard(
+                  title: 'Last Activity',
+                  value: '2h ago', // You would calculate this
+                  icon: Icons.access_time_outlined,
+                  color: Colors.orange,
+                ),
+
+                const SizedBox(height: 32),
+
+                // Additional store information section
+                Text(
+                  'Store Information',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 16),
+
+                // Additional info cards would go here
+                // These could be created as separate components
+              ],
+            ),
+          ),
+        ),
+
+        // Divider
+        const VerticalDivider(width: 1),
+
+        // Right panel - Tills management
+        Expanded(
+          flex: 2,
+          child: TillsManagementPanel(store: store, storeId: storeId),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabletLayout(BuildContext context, Store store) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Metrics section
+          Text(
+            'Store Metrics',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+
+          // Metrics grid
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 2.5,
+            children: [
+              StoreMetricsCard(
+                title: 'Total Tills',
+                value: '${store.totalTills}',
+                icon: Icons.point_of_sale_outlined,
+                color: Colors.deepPurple,
+              ),
+              StoreMetricsCard(
+                title: 'Active Tills',
+                value: '${store.occupiedTills}',
+                icon: Icons.bolt_outlined,
+                color: Colors.green,
+              ),
+              StoreMetricsCard(
+                title: 'Available Tills',
+                value: '${store.availableTills}',
+                icon: Icons.check_circle_outline,
+                color: Colors.blue,
+              ),
+              StoreMetricsCard(
+                title: 'Last Activity',
+                value: '2h ago', // You would calculate this
+                icon: Icons.access_time_outlined,
+                color: Colors.orange,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // Tills management section
+          Text(
+            'Tills Management',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+
+          // Tills panel
+          TillsManagementPanel(store: store, storeId: storeId),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(BuildContext context, IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[800],
+              ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

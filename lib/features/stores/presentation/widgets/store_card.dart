@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
+
 class StoreCard extends StatelessWidget {
   final Store store;
   final VoidCallback onTap;
