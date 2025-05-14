@@ -11,21 +11,36 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Get full git history
+
+      - name: Debug file structure
+        run: |
+          ls -la lib/features/auth/presentation/widgets/
+          find . -name "sign*.dart"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+          flutter-version: '3.29.3'  # Match your local version
 
       - name: Enable web support
         run: flutter config --enable-web
 
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          flutter pub upgrade
 
-      - name: Build Flutter web
-        run: flutter build web --release --base-href /smartmedia_campaign_manager/ --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
+      - name: Verify paths
+        run: |
+          test -f lib/features/auth/presentation/widgets/signup_dialog.dart || \
+          (echo "ERROR: File not found at lib/features/auth/presentation/widgets/signup_dialog.dart" && exit 1)
+
+      - name: Build with verbose output
+        run: flutter build web --release --verbose --base-href /smartmedia_campaign_manager/ --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
 
       - name: Create .nojekyll
         run: touch build/web/.nojekyll
