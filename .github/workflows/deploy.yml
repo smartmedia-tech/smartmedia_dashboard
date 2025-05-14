@@ -3,8 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-permissions:
-  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,7 +21,7 @@ jobs:
         run: flutter pub get
         
       - name: Build web
-        run: flutter build web --base-href "/${{ github.event.repository.name }}/"
+        run: flutter build web --base-href "/smartmedia_dashboard/"
         
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
