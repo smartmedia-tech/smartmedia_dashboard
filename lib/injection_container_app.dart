@@ -10,11 +10,11 @@ import 'package:smartmedia_campaign_manager/features/auth/data/repositories/auth
 import 'package:smartmedia_campaign_manager/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_event.dart';
+import 'package:smartmedia_campaign_manager/features/reports/presentation/bloc/reports_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/bloc/stores_event.dart';
+import 'package:smartmedia_campaign_manager/injection_container.dart' as di;
 import 'package:smartmedia_campaign_manager/wrapper/wrapper.dart';
-
-import 'injection_container.dart';
 
 class InjectionContainerApp extends StatelessWidget {
   const InjectionContainerApp({super.key});
@@ -37,11 +37,13 @@ class InjectionContainerApp extends StatelessWidget {
                   AuthBloc(authUseCases: context.read<AuthUseCases>()),
             ),
             BlocProvider<CampaignBloc>(
-              create: (_) => sl<CampaignBloc>()..add(const LoadCampaigns()),
+              create: (_) => di.sl<CampaignBloc>()..add(const LoadCampaigns()),
             ),
-            // Add StoresBloc provider
             BlocProvider<StoresBloc>(
-              create: (_) => sl<StoresBloc>()..add(LoadStores()),
+              create: (_) => di.sl<StoresBloc>()..add(LoadStores()),
+            ),
+            BlocProvider<ReportsBloc>(
+              create: (_) => di.sl<ReportsBloc>(),
             ),
           ],
           child: Consumer<ThemeController>(

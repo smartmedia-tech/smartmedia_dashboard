@@ -4,6 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
+import 'package:smartmedia_campaign_manager/features/reports/data/repositories/reports_repository_impl.dart';
+import 'package:smartmedia_campaign_manager/features/reports/domain/repositories/reports_repository.dart';
+import 'package:smartmedia_campaign_manager/features/reports/domain/usecases/delete_report_usecase.dart';
+import 'package:smartmedia_campaign_manager/features/reports/domain/usecases/generate_report_usecase.dart';
+import 'package:smartmedia_campaign_manager/features/reports/domain/usecases/get_reports_usecase.dart';
+import 'package:smartmedia_campaign_manager/features/reports/presentation/bloc/reports_bloc.dart';
 
 // Data Layer
 import 'features/campaign/data/repositories/campaign_repository_impl.dart';
@@ -44,6 +50,9 @@ Future<void> init() async {
       storage: sl<FirebaseStorage>(),
     ),
   );
+    sl.registerLazySingleton<ReportsRepository>(
+    () => ReportsRepositoryImpl(sl()),
+  );
 
   // 🏗️ Repository
   sl.registerLazySingleton<CampaignRepository>(
@@ -55,6 +64,9 @@ Future<void> init() async {
   );
 
   // 📤 Use Cases
+   sl.registerLazySingleton(() => GenerateReportUseCase(sl()));
+  sl.registerLazySingleton(() => GetReportsUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteReportUseCase(sl()));
   sl.registerLazySingleton(() => CreateCampaign(sl<CampaignRepository>()));
   sl.registerLazySingleton(() => GetCampaigns(sl<CampaignRepository>()));
   sl.registerLazySingleton(() => GetCampaign(sl<CampaignRepository>()));
@@ -76,6 +88,7 @@ Future<void> init() async {
       uploadCampaignImage: sl<UploadCampaignImage>(),
     ),
   );
+    sl.registerFactory(() => ReportsBloc(sl()));
 
   // Register StoresBloc factory
   sl.registerFactory(
