@@ -364,8 +364,14 @@ class _CampaignScreenState extends State<CampaignScreen> {
                       campaign: campaigns[index],
                       onDelete: (id) => _showDeleteConfirmation(id),
                       onEdit: (campaign) => _showEditDialog(campaign),
-                      onViewDetails: (campaign) {
-                        setState(() {});
+                     onViewDetails: (campaign) {
+                        // Navigator.push(
+                          // context,
+                          // MaterialPageRoute(
+                          //   builder: (context) =>
+                          //       CampaignDetailsScreen(campaign: campaign),
+                          // ),
+                        // );
                       },
                     ),
                     childCount: campaigns.length,
