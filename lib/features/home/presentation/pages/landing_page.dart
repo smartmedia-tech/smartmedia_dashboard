@@ -1,4 +1,5 @@
 import 'package:smartmedia_campaign_manager/config/theme/theme_controller.dart';
+import 'package:smartmedia_campaign_manager/core/utils/colors.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/pages/campaigns_screen.dart';
 import 'package:smartmedia_campaign_manager/features/home/presentation/widgets/custom_appBar.dart';
 
@@ -59,8 +60,8 @@ class LandingPageState extends State<LandingPage> {
           Expanded(
             child: Container(
               color: themeController.isDarkMode
-                  ? Colors.grey[900]
-                  : Colors.grey[100],
+                  ? AppColors.surfaceDark
+                  : AppColors.surface,
               child: _screens[_selectedIndex],
             ),
           ),

@@ -14,12 +14,10 @@ class ReportsRepositoryImpl implements ReportsRepository {
   Future<List<Store>> getStoresForCampaign(String campaignId) async {
     try {
       // Query stores where at least one till has the specified campaignId
-      final storesSnapshot = await _firestore
+    final storesSnapshot = await _firestore
           .collection('stores')
-          .where('tills', arrayContainsAny: [
-        {'campaignId': campaignId}
-      ]).get();
-
+    .where('tills', arrayContains: {'campaignId': campaignId})
+          .get();
       // Filter stores and tills to only include relevant campaign data
       final stores = storesSnapshot.docs
           .map((doc) => Store.fromFirestore(doc))
@@ -75,14 +73,12 @@ class ReportsRepositoryImpl implements ReportsRepository {
     }
   }
 
-  @override
+@override
   Future<void> saveReport(Report report) async {
     try {
       final reportModel = ReportModel.fromEntity(report);
-      await _firestore
-          .collection('reports')
-          .doc(report.id)
-          .set(reportModel.toMap());
+      final data = reportModel.toMap();
+      await _firestore.collection('reports').doc(report.id).set(data);
     } catch (e) {
       throw Exception('Failed to save report: $e');
     }
