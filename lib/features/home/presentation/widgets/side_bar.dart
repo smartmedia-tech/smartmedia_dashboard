@@ -31,8 +31,7 @@ class _SideBarState extends State<SideBar> with SingleTickerProviderStateMixin {
     {'title': 'Dashboard', 'icon': FontAwesomeIcons.gauge},
     {'title': 'Campaigns', 'icon': FontAwesomeIcons.bullhorn},
     {'title': 'Stores', 'icon': FontAwesomeIcons.store},
-    {'title': 'Media', 'icon': FontAwesomeIcons.photoFilm},
-    {'title': 'Clients', 'icon': FontAwesomeIcons.users},
+  
     {'title': 'Reports', 'icon': FontAwesomeIcons.chartLine},
   ];
 

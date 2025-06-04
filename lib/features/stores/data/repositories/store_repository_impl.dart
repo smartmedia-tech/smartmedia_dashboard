@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
-
 import '../../domain/repositories/store_repository.dart';
 import '../datasources/store_remote_data_source.dart';
 
@@ -97,4 +96,9 @@ class StoreRepositoryImpl implements StoreRepository {
   @override
   Future<List<String>> getUniqueRegions() =>
       _remoteDataSource.getUniqueRegions();
+
+  // Add the missing method implementation
+  @override
+  Future<List<Store>> getStoresWithCampaign(String campaignId) =>
+      _remoteDataSource.getStoresWithCampaign(campaignId);
 }

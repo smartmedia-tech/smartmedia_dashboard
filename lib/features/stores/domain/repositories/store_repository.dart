@@ -13,7 +13,7 @@ abstract class StoreRepository {
     String? imageUrl,
     String? id,
   });
-
+  Future<List<Store>> getStoresWithCampaign(String campaignId);
   Future<String> uploadStoreImage(String storeId, File imageFile);
 
   Future<void> updateStore(Store store);

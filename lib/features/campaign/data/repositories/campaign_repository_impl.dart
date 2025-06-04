@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import '../../domain/entities/campaign.dart';
 import '../../domain/repositories/campaign_repository.dart';
 import '../datasources/campaign_remote_data_source.dart';

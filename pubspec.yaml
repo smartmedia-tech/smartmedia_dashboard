@@ -34,9 +34,10 @@ dependencies:
   shimmer: ^3.0.0
   flutter_animate: ^4.5.2
   image_picker: ^1.1.2
-  flutterfire_cli: ^0.1.1+2
+  flutterfire_cli: ^1.2.0  # Updated version
   get_it: ^8.0.3
-  
+  printing: ^5.10.0
+  pdf: ^3.10.0
 
 dev_dependencies:
   flutter_test:

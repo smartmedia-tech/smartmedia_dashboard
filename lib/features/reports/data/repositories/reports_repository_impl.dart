@@ -10,18 +10,28 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
   ReportsRepositoryImpl(this._firestore);
 
-  @override
  @override
   Future<List<Store>> getStoresForCampaign(String campaignId) async {
     try {
-      final storesSnapshot = await _firestore
+      // Query stores where at least one till has the specified campaignId
+    final storesSnapshot = await _firestore
           .collection('stores')
-          .where('campaignIds', arrayContains: campaignId)
+    .where('tills', arrayContains: {'campaignId': campaignId})
           .get();
-
-      return storesSnapshot.docs
+      // Filter stores and tills to only include relevant campaign data
+      final stores = storesSnapshot.docs
           .map((doc) => Store.fromFirestore(doc))
-          .toList();
+          .where((store) =>
+              store.tills.any((till) => till.campaignId == campaignId))
+          .map((store) {
+        // Create a copy of the store with only tills that have this campaign
+        final relevantTills =
+            store.tills.where((till) => till.campaignId == campaignId).toList();
+
+        return store.copyWith(tills: relevantTills);
+      }).toList();
+
+      return stores;
     } catch (e) {
       throw Exception('Failed to get stores for campaign: $e');
     }
@@ -63,14 +73,12 @@ class ReportsRepositoryImpl implements ReportsRepository {
     }
   }
 
-  @override
+@override
   Future<void> saveReport(Report report) async {
     try {
       final reportModel = ReportModel.fromEntity(report);
-      await _firestore
-          .collection('reports')
-          .doc(report.id)
-          .set(reportModel.toMap());
+      final data = reportModel.toMap();
+      await _firestore.collection('reports').doc(report.id).set(data);
     } catch (e) {
       throw Exception('Failed to save report: $e');
     }

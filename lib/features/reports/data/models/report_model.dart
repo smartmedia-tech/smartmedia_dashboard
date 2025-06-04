@@ -44,7 +44,7 @@ class ReportModel extends Report {
         startDate: DateTime.now(),
         endDate: DateTime.now(),
       ),
-      stores: [], // Will be populated separately
+      stores: const[], 
       generatedAt: (data['generatedAt'] as Timestamp).toDate(),
       status: ReportStatus.values[data['status'] ?? 0],
       metrics: ReportMetrics(

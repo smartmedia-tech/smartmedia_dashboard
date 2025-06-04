@@ -1,3 +1,5 @@
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_deployment.dart';
+
 class Campaign {
   final String id;
   final String name;
@@ -6,6 +8,7 @@ class Campaign {
   final DateTime startDate;
   final DateTime endDate;
   final CampaignStatus status;
+  final List<CampaignDeployment> deployments;
 
   Campaign({
     required this.id,
@@ -14,7 +17,8 @@ class Campaign {
     required this.description,
     required this.startDate,
     required this.endDate,
-    this.status = CampaignStatus.draft,
+     this.status = CampaignStatus.draft,
+    this.deployments = const [],
   });
 
   Campaign copyWith({
@@ -25,6 +29,7 @@ class Campaign {
     DateTime? endDate,
     CampaignStatus? status,
     String? clientLogoUrl,
+    List<CampaignDeployment>? deployments,
   }) {
     return Campaign(
       id: id ?? this.id,
@@ -34,6 +39,7 @@ class Campaign {
       endDate: endDate ?? this.endDate,
       status: status ?? this.status,
       clientLogoUrl: clientLogoUrl ?? this.clientLogoUrl,
+       deployments: deployments ?? this.deployments,
     );
   }
 }

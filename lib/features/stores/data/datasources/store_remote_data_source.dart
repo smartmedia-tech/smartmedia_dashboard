@@ -176,4 +176,46 @@ class StoreRemoteDataSource {
 
     return regions.toList()..sort();
   }
+
+  // Add the missing method
+  Future<List<Store>> getStoresWithCampaign(String campaignId) async {
+    // Query deployments collection to find stores that have this campaign
+    final deploymentsSnapshot = await _firestore
+        .collection('campaign_deployments')
+        .where('campaignId', isEqualTo: campaignId)
+        .get();
+
+    if (deploymentsSnapshot.docs.isEmpty) {
+      return [];
+    }
+
+    // Extract unique store IDs from deployments
+    final storeIds = deploymentsSnapshot.docs
+        .map((doc) => doc.data()['storeId'] as String)
+        .toSet()
+        .toList();
+
+    // If no stores found, return empty list
+    if (storeIds.isEmpty) {
+      return [];
+    }
+
+    // Fetch stores in batches (Firestore 'in' query has a limit of 10)
+    final List<Store> stores = [];
+    for (int i = 0; i < storeIds.length; i += 10) {
+      final batch = storeIds.skip(i).take(10).toList();
+      final storesSnapshot = await _storesCollection
+          .where(FieldPath.documentId, whereIn: batch)
+          .get();
+
+      final batchStores = storesSnapshot.docs
+          .map((doc) => Store.fromFirestore(doc))
+          .whereType<Store>()
+          .toList();
+
+      stores.addAll(batchStores);
+    }
+
+    return stores;
+  }
 }
