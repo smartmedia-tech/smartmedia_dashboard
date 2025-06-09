@@ -34,7 +34,7 @@ class _TillImageGalleryState extends State<TillImageGallery> {
 
   List<TillImage> get allImages {
     // Safely access images, return empty list if null
-    return widget.till.images ?? [];
+    return widget.till.images;
   }
 
   @override

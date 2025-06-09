@@ -124,7 +124,7 @@ class StoreCard extends StatelessWidget {
 
                       return GestureDetector(
                         onTap: () {
-                          if (till.images?.isNotEmpty == true) {
+                          if (till.images.isNotEmpty == true) {
                             // Correct null-safe check
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -174,8 +174,8 @@ class StoreCard extends StatelessWidget {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
-                              if (till.images?.isNotEmpty ==
-                                  true) // Correct null-safe check
+                              if (till.images.isNotEmpty ==
+                                  true) 
                                 Icon(
                                   Icons.camera_alt,
                                   size: 14,

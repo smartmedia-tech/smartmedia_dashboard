@@ -1,7 +1,8 @@
+// lib/features/reports/presentation/widgets/reports_list.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/reports/presentation/widgets/report_detail_dialog.dart';
-import '../../domain/entities/report.dart';
+import '../../domain/entities/report.dart'; // Make sure Report is imported
 import '../bloc/reports_bloc.dart';
 import '../bloc/reports_event.dart';
 
@@ -13,26 +14,26 @@ class ReportsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reports.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.analytics_outlined,
               size: 64,
-              color: Colors.grey,
+              color: Colors.grey[300],
             ),
-            SizedBox(height: 16),
-            Text(
-              'No reports generated yet',
+            const SizedBox(height: 16),
+            const Text(
+              'No reports found matching your criteria.',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Generate your first report by selecting a campaign',
+            const SizedBox(height: 8),
+            const Text(
+              'Try adjusting your filters or generate a new report.',
               style: TextStyle(
                 color: Colors.grey,
               ),
@@ -43,10 +44,17 @@ class ReportsList extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
+    return GridView.builder(
+      // Changed from ListView to GridView for dashboard look
+      padding:
+          const EdgeInsets.all(0), // Padding is now handled by DashboardLayout
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 400.0, // Max width of each card
+        mainAxisSpacing: 16.0,
+        crossAxisSpacing: 16.0,
+        childAspectRatio: 2.0, // Adjust as needed to control card height
+      ),
       itemCount: reports.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final report = reports[index];
         return ReportCard(
@@ -69,22 +77,23 @@ class ReportsList extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Report'),
+        title: const Text('Delete Report', style: TextStyle(color: Colors.red)),
         content: Text(
-          'Are you sure you want to delete the report for "${report.campaign.name}"?',
+          'Are you sure you want to delete the report for "${report.campaign.name}"? This action cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
+            // Changed to ElevatedButton for prominence
             onPressed: () {
               context.read<ReportsBloc>().add(DeleteReport(report.id));
               Navigator.of(context).pop();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -107,16 +116,20 @@ class ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 4, // Increased elevation for a richer look
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)), // More rounded corners
+      clipBehavior: Clip.antiAlias, // Ensures content respects border radius
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20), // Increased padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start, // Align top
                 children: [
                   Expanded(
                     child: Column(
@@ -124,17 +137,21 @@ class ReportCard extends StatelessWidget {
                       children: [
                         Text(
                           report.campaign.name,
-                          style: const TextStyle(
-                            fontSize: 16,
+                          style: TextStyle(
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .primaryColor, // Use primary color
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           'Generated on ${_formatDate(report.generatedAt)}',
                           style: TextStyle(
                             color: Colors.grey[600],
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -144,38 +161,53 @@ class ReportCard extends StatelessWidget {
                     onSelected: (value) {
                       if (value == 'delete') {
                         onDelete();
+                      } else if (value == 'view_detail') {
+                        onTap(); // Direct view option
                       }
                     },
                     itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'view_detail',
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility,
+                                color: Colors.blue, size: 20),
+                            SizedBox(width: 8),
+                            Text('View Details'),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
                             Icon(Icons.delete, color: Colors.red, size: 20),
                             SizedBox(width: 8),
-                            Text('Delete'),
+                            Text('Delete Report'),
                           ],
                         ),
                       ),
                     ],
+                    icon: Icon(Icons.more_vert,
+                        color: Colors.grey[700]), // More subtle icon
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const Spacer(), // Pushes content to top/bottom
               Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween, // Distribute chips
                 children: [
                   _MetricChip(
                     icon: Icons.store,
                     label: '${report.metrics.totalStores} stores',
                     color: Colors.blue,
                   ),
-                  const SizedBox(width: 8),
                   _MetricChip(
                     icon: Icons.point_of_sale,
                     label: '${report.metrics.totalTills} tills',
                     color: Colors.green,
                   ),
-                  const SizedBox(width: 8),
                   _MetricChip(
                     icon: Icons.analytics,
                     label:
@@ -184,31 +216,36 @@ class ReportCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(report.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _getStatusIcon(report.status),
-                      size: 12,
-                      color: _getStatusColor(report.status),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _getStatusText(report.status),
-                      style: TextStyle(
-                        fontSize: 10,
+              const SizedBox(height: 12),
+              Align(
+                // Status chip aligned to the left
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(report.status).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min, // Wrap content tightly
+                    children: [
+                      Icon(
+                        _getStatusIcon(report.status),
+                        size: 14,
                         color: _getStatusColor(report.status),
-                        fontWeight: FontWeight.w500,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Text(
+                        _getStatusText(report.status),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _getStatusColor(report.status),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -219,9 +256,11 @@ class ReportCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    // A more readable date format
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
+  // (Status color, icon, text methods remain the same)
   Color _getStatusColor(ReportStatus status) {
     switch (status) {
       case ReportStatus.completed:
@@ -270,22 +309,23 @@ class _MetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 10, vertical: 6), // Slightly larger padding
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.15), // Slightly more opaque background
+        borderRadius: BorderRadius.circular(16), // More rounded corners
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
+          Icon(icon, size: 14, color: color), // Slightly larger icon
+          const SizedBox(width: 6), // Slightly more spacing
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 12, // Slightly larger font
               color: color,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600, // Slightly bolder font
             ),
           ),
         ],
