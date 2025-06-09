@@ -34,10 +34,19 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
 
   Future<void> _onSelectCampaign(
       SelectCampaign event, Emitter<ReportsState> emit) async {
+    // We assume here that ReportsLoaded state is already active.
+    // If not, consider handling other states or ensuring this event is dispatched only when appropriate.
     if (state is ReportsLoaded) {
       final currentState = state as ReportsLoaded;
-      emit(currentState.copyWith(selectedCampaign: event.campaign));
+      emit(currentState.copyWith(
+          selectedCampaign: event.campaign,
+          campaignStores: [])); // Clear stores on new selection
       add(LoadStoresForCampaign(event.campaign.id));
+    } else {
+      // If not in ReportsLoaded, you might want to transition to a loading state first
+      // or handle this as an invalid operation. For now, it will just not update.
+      debugPrint(
+          'ReportsBloc: SelectCampaign called in unexpected state: $state');
     }
   }
 
@@ -50,9 +59,16 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
             await _reportsRepository.getStoresForCampaign(event.campaignId);
         emit(currentState.copyWith(campaignStores: stores));
       } catch (e) {
-        
-        emit(ReportsError('Failed to load stores: ${e.toString()}'));
+        debugPrint('Error loading stores: ${e.toString()}');
+        emit(
+            currentState.copyWith(campaignStores: [])); // Clear stores on error
+        emit(ReportsError(
+            'Failed to load stores for campaign: ${e.toString()}'));
       }
+    } else {
+      debugPrint(
+          'ReportsBloc: LoadStoresForCampaign called in unexpected state: $state');
+      // Potentially emit an error or transition to a loading state if needed.
     }
   }
 
@@ -73,7 +89,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
           reports: updatedReports,
           isGeneratingReport: false,
         ));
-        emit(ReportGenerated(report));
+        emit(ReportGenerated(report)); // Emit a separate success state
       } catch (e) {
         debugPrint('Error generating report: ${e.toString()}');
         emit(currentState.copyWith(isGeneratingReport: false));

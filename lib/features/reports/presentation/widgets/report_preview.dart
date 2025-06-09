@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/reports/domain/entities/report.dart'; // Import Report and ReportMetrics
 import 'package:smartmedia_campaign_manager/features/reports/presentation/widgets/store_card.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
+import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_model.dart';
 
 class ReportPreview extends StatelessWidget {
   final Campaign campaign;
@@ -13,13 +15,49 @@ class ReportPreview extends StatelessWidget {
     required this.stores,
   }) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    final totalTills = stores.fold(0, (sum, store) => sum + store.totalTills);
-    final occupiedTills =
-        stores.fold(0, (sum, store) => sum + (store.occupiedTills is int ? store.occupiedTills as int : (store.occupiedTills as List).length as int));
+  // Helper to calculate metrics for the preview
+  ReportMetrics _calculateMetrics(
+      Campaign currentCampaign, List<Store> currentStores) {
+    final totalStores = currentStores.length;
+    final totalTills =
+        currentStores.fold(0, (sum, store) => sum + store.totalTills);
+
+    // Filter tills specific to the campaign in this report for accurate occupied count
+    final List<Till> campaignSpecificTills = currentStores
+        .expand((store) => store.tills)
+        .where((till) => till.currentCampaignId == currentCampaign.id)
+        .toList();
+
+    final occupiedTills = campaignSpecificTills.length;
+    final availableTills = totalTills - occupiedTills;
+
+    // Assuming store.imageUrl is a single String URL:
+    final storesWithImages = currentStores
+        .where((store) => store.imageUrl != null && store.imageUrl!.isNotEmpty)
+        .length;
+
+    final tillsWithImages = campaignSpecificTills.fold(
+      0,
+      (sum, till) => sum + (till.images.isNotEmpty == true ? 1 : 0),
+    );
+
     final occupancyRate =
         totalTills > 0 ? (occupiedTills / totalTills) * 100 : 0.0;
+
+    return ReportMetrics(
+      totalStores: totalStores,
+      totalTills: totalTills,
+      occupiedTills: occupiedTills,
+      availableTills: availableTills,
+      storesWithImages: storesWithImages,
+      tillsWithImages: tillsWithImages,
+      occupancyRate: occupancyRate,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = _calculateMetrics(campaign, stores);
 
     return Card(
       child: Padding(
@@ -36,7 +74,7 @@ class ReportPreview extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Summary Statistics
+            // Summary Statistics using calculated metrics
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -48,23 +86,23 @@ class ReportPreview extends StatelessWidget {
                 children: [
                   _StatItem(
                     label: 'Stores',
-                    value: stores.length.toString(),
+                    value: metrics.totalStores.toString(),
                     icon: Icons.store,
                   ),
                   _StatItem(
                     label: 'Total Tills',
-                    value: totalTills.toString(),
+                    value: metrics.totalTills.toString(),
                     icon: Icons.point_of_sale,
                   ),
                   _StatItem(
                     label: 'Occupied',
-                    value: occupiedTills.toString(),
+                    value: metrics.occupiedTills.toString(),
                     icon: Icons.check_circle,
                     color: Colors.green,
                   ),
                   _StatItem(
                     label: 'Occupancy',
-                    value: '${occupancyRate.toStringAsFixed(1)}%',
+                    value: '${metrics.occupancyRate.toStringAsFixed(1)}%',
                     icon: Icons.analytics,
                     color: Colors.orange,
                   ),
@@ -102,7 +140,6 @@ class ReportPreview extends StatelessWidget {
                 itemBuilder: (context, index) {
                   return StoreCard(
                     store: stores[index],
-               
                   );
                 },
               ),

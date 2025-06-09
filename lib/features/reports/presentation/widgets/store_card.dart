@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:smartmedia_campaign_manager/features/reports/presentation/bloc/reports_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/reports/presentation/widgets/till_image_gallery.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
 
@@ -9,6 +11,18 @@ class StoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate occupied tills for the campaign relevant to this store card preview
+    // Assuming 'currentCampaignId' on Till helps determine if it's occupied by the selected campaign
+    final int campaignOccupiedTills = store.tills
+        .where((till) =>
+            till.currentCampaignId ==
+            (context.read<ReportsBloc>().state is ReportsLoaded
+                ? (context.read<ReportsBloc>().state as ReportsLoaded)
+                    .selectedCampaign
+                    ?.id
+                : null))
+        .length;
+
     return Card(
       elevation: 2,
       child: ExpansionTile(
@@ -29,9 +43,10 @@ class StoreCard extends StatelessWidget {
             Text('Region: ${store.region}'),
             Text('Site: ${store.siteNumber}'),
             Text(
-              '${store.occupiedTills}/${store.totalTills} tills occupied',
+              // Use the calculated campaignOccupiedTills here
+              '$campaignOccupiedTills/${store.totalTills} tills occupied for selected campaign',
               style: TextStyle(
-                color: store.occupiedTills.length > 0 ? Colors.green : Colors.orange,
+                color: campaignOccupiedTills > 0 ? Colors.green : Colors.orange,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -43,7 +58,8 @@ class StoreCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (store.imageUrl != null) ...[
+                if (store.imageUrl != null && store.imageUrl!.isNotEmpty) ...[
+                  // Null and empty string check
                   const Text(
                     'Store Image:',
                     style: TextStyle(fontWeight: FontWeight.w600),
@@ -52,7 +68,8 @@ class StoreCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      store.imageUrl ?? '',
+                      store
+                          .imageUrl!, // Use non-null asserted as it's checked above
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -95,10 +112,20 @@ class StoreCard extends StatelessWidget {
                     itemCount: store.tills.length,
                     itemBuilder: (context, index) {
                       final till = store.tills[index];
+                      // Determine if this specific till is occupied by the selected campaign
+                      final bool isTillOccupiedBySelectedCampaign = till
+                              .currentCampaignId ==
+                          (context.read<ReportsBloc>().state is ReportsLoaded
+                              ? (context.read<ReportsBloc>().state
+                                      as ReportsLoaded)
+                                  .selectedCampaign
+                                  ?.id
+                              : null);
+
                       return GestureDetector(
                         onTap: () {
-                          if (till.images != null ||
-                              till.images.isNotEmpty) {
+                          if (till.images?.isNotEmpty == true) {
+                            // Correct null-safe check
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => TillImageGallery(
@@ -107,16 +134,23 @@ class StoreCard extends StatelessWidget {
                                 ),
                               ),
                             );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('No images available for this till.'),
+                              ),
+                            );
                           }
                         },
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: till.isOccupied
+                            color: isTillOccupiedBySelectedCampaign
                                 ? Colors.green.shade50
                                 : Colors.orange.shade50,
                             border: Border.all(
-                              color: till.isOccupied
+                              color: isTillOccupiedBySelectedCampaign
                                   ? Colors.green
                                   : Colors.orange,
                             ),
@@ -125,10 +159,10 @@ class StoreCard extends StatelessWidget {
                           child: Row(
                             children: [
                               Icon(
-                                till.isOccupied
+                                isTillOccupiedBySelectedCampaign
                                     ? Icons.check_circle
                                     : Icons.radio_button_unchecked,
-                                color: till.isOccupied
+                                color: isTillOccupiedBySelectedCampaign
                                     ? Colors.green
                                     : Colors.orange,
                                 size: 16,
@@ -140,8 +174,8 @@ class StoreCard extends StatelessWidget {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
-                              if (till.images != null ||
-                                  till.images.isNotEmpty)
+                              if (till.images?.isNotEmpty ==
+                                  true) // Correct null-safe check
                                 Icon(
                                   Icons.camera_alt,
                                   size: 14,
