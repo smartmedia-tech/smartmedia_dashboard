@@ -649,15 +649,15 @@ class ReportDetailDialog extends StatelessWidget {
                 ),
               ],
             ),
-            if (till.imageUrl != null || till.imageUrls.isNotEmpty) ...[
+            if (till.images != null || till.images.isNotEmpty) ...[
               const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    if (till.imageUrl != null)
-                      _buildImageThumbnail(till.imageUrl!),
-                    ...till.imageUrls.map((url) => _buildImageThumbnail(url)).toList(),
+                    if (till.images != null && till.images!.isNotEmpty)
+                      _buildImageThumbnail(till.images!.first.imageUrl),
+                    ...till.images.map((img) => _buildImageThumbnail(img.imageUrl)).toList(),
                   ],
                 ),
               ),
@@ -696,8 +696,8 @@ class ReportDetailDialog extends StatelessWidget {
     for (final store in report.stores) {
       if (store.imageUrl != null) allImages.add(store.imageUrl!);
       for (final till in store.tills) {
-        if (till.imageUrl != null) allImages.add(till.imageUrl!);
-        allImages.addAll(till.imageUrls);
+        if (till.images != null) allImages.add(till.images.first.imageUrl);
+        allImages.addAll(till.images.map((img) => img.imageUrl));
       }
     }
     

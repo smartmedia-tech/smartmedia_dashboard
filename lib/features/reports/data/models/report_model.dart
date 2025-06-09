@@ -43,6 +43,8 @@ class ReportModel extends Report {
         description: '',
         startDate: DateTime.now(),
         endDate: DateTime.now(),
+        clientId: data['clientId'] ?? '',
+        status: data['status'] ?? '',
       ),
       stores: const[], 
       generatedAt: (data['generatedAt'] as Timestamp).toDate(),

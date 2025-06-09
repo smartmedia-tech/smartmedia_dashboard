@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_state.dart';
 
@@ -27,14 +28,14 @@ class CampaignSelector extends StatelessWidget {
             );
           }
 
-          return DropdownButtonFormField<Campaign>(
+          return DropdownButtonFormField<CampaignEntity>(
             decoration: const InputDecoration(
               labelText: 'Select Campaign',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.campaign),
             ),
             items: campaigns.map((campaign) {
-              return DropdownMenuItem<Campaign>(
+              return DropdownMenuItem<CampaignEntity>(
                 value: campaign,
                 child: Text(
                   '${campaign.name} - ${campaign.description}',
@@ -47,7 +48,7 @@ class CampaignSelector extends StatelessWidget {
             }).toList(),
             onChanged: (campaign) {
               if (campaign != null) {
-                context.read<ReportsBloc>().add(SelectCampaign(campaign));
+                context.read<ReportsBloc>().add(SelectCampaign(campaign as Campaign));
               }
             },
             validator: (value) {

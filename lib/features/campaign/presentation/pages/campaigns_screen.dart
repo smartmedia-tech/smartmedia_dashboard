@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/campaign_form.dart';
 import 'package:smartmedia_campaign_manager/injection_container.dart';
@@ -331,17 +332,17 @@ class _CampaignScreenState extends State<CampaignScreen> {
         }
 
         // Handle states with data
-        List<Campaign> campaigns = [];
+        List<Campaign>? campaigns = [];
         bool isLoadingMore = false;
         bool hasReachedMax = false;
 
         if (state is CampaignLoading) {
-          campaigns = state.campaigns;
+          campaigns = state.campaigns.cast<Campaign>();
           isLoadingMore = true;
         } else if (state is CampaignError) {
-          campaigns = state.campaigns;
+          campaigns = state.campaigns.cast<Campaign>();
         } else if (state is CampaignsLoaded) {
-          campaigns = state.campaigns;
+          campaigns = state.campaigns.cast<Campaign>();
           hasReachedMax = state.hasReachedMax;
         }
 
@@ -361,9 +362,9 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => CampaignCard(
-                      campaign: campaigns[index],
+                      campaign: campaigns![index],
                       onDelete: (id) => _showDeleteConfirmation(id),
-                      onEdit: (campaign) => _showEditDialog(campaign),
+                      onEdit: (campaignEntity) => _showEditDialog(campaignEntity as Campaign),
                      onViewDetails: (campaign) {
                         // Navigator.push(
                           // context,
@@ -428,6 +429,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                 startDate: campaign.startDate,
                 endDate: campaign.endDate,
                 status: campaign.status,
+                clientId: campaign.clientId,
                 clientLogoUrl: imageUrl,
               );
             } catch (e) {
@@ -475,6 +477,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                 startDate: updatedCampaign.startDate,
                 endDate: updatedCampaign.endDate,
                 status: updatedCampaign.status,
+                clientId: updatedCampaign.clientId,
                 clientLogoUrl: imageUrl,
               );
             } catch (e) {

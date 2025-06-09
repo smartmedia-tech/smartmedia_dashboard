@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import '../../domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
+
 import 'package:equatable/equatable.dart';
 
 abstract class CampaignEvent extends Equatable {
@@ -25,7 +26,7 @@ class LoadMoreCampaigns extends LoadCampaigns {
 }
 
 class AddCampaign extends CampaignEvent {
-  final Campaign campaign;
+  final CampaignEntity campaign;
   const AddCampaign(this.campaign);
 
   @override
@@ -33,7 +34,7 @@ class AddCampaign extends CampaignEvent {
 }
 
 class UpdateCampaign extends CampaignEvent {
-  final Campaign campaign;
+  final CampaignEntity campaign;
   const UpdateCampaign(this.campaign);
 
   @override
@@ -88,4 +89,19 @@ class FilterCampaigns extends CampaignEvent {
 
   @override
   List<Object?> get props => [searchQuery, status];
+}
+class FetchCampaignsWithStores extends CampaignEvent {}
+
+class FetchActiveCampaignsWithStores extends CampaignEvent {}
+
+class FetchCampaignsForStore extends CampaignEvent {
+  final String storeId;
+
+  FetchCampaignsForStore(this.storeId);
+}
+
+class RefreshCampaigns extends CampaignEvent {
+  final bool includeStores;
+
+  RefreshCampaigns({this.includeStores = false});
 }

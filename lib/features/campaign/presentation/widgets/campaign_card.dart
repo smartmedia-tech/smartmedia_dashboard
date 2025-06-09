@@ -2,13 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:smartmedia_campaign_manager/core/utils/function_utils.dart';
-import '../../domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 
 class CampaignCard extends StatelessWidget {
-  final Campaign campaign;
+  final CampaignEntity campaign;
   final Function(String) onDelete;
-  final Function(Campaign) onEdit;
-  final Function(Campaign) onViewDetails;
+  final Function(CampaignEntity) onEdit;
+  final Function(CampaignEntity) onViewDetails;
 
   const CampaignCard({
     super.key,

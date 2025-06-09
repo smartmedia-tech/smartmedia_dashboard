@@ -33,11 +33,8 @@ class _TillImageGalleryState extends State<TillImageGallery> {
 
   List<String> get allImages {
     final images = <String>[];
-    if (widget.till.imageUrl != null) {
-      images.add(widget.till.imageUrl!);
-    }
-    images.addAll(widget.till.imageUrls);
-    return images;
+    images.addAll(widget.till.images.map((img) => img.imageUrl)); 
+      return images;
   }
 
   @override

@@ -22,11 +22,11 @@ class ReportsRepositoryImpl implements ReportsRepository {
       final stores = storesSnapshot.docs
           .map((doc) => Store.fromFirestore(doc))
           .where((store) =>
-              store.tills.any((till) => till.campaignId == campaignId))
+              store.tills.any((till) => till.currentCampaignId == campaignId))
           .map((store) {
         // Create a copy of the store with only tills that have this campaign
         final relevantTills =
-            store.tills.where((till) => till.campaignId == campaignId).toList();
+            store.tills.where((till) => till.currentCampaignId == campaignId).toList();
 
         return store.copyWith(tills: relevantTills);
       }).toList();
@@ -97,7 +97,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
     final totalStores = stores.length;
     final totalTills = stores.fold(0, (sum, store) => sum + store.totalTills);
     final occupiedTills =
-        stores.fold(0, (sum, store) => sum + store.occupiedTills);
+        stores.fold(0, (sum, store) => sum + store.tills.where((till) => till.currentCampaignId != null).length);
     final availableTills = totalTills - occupiedTills;
     final storesWithImages =
         stores.where((store) => store.imageUrl != null).length;
@@ -107,7 +107,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
           sum +
           store.tills
               .where(
-                  (till) => till.imageUrl != null || till.imageUrls.isNotEmpty)
+                  (till) => till.images != null || till.images.isNotEmpty)
               .length,
     );
     final occupancyRate =

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 
 Color getStatusColor(CampaignStatus status) {
   switch (status) {

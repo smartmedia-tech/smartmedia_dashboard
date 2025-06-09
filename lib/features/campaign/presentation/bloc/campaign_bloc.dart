@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
 import '../../domain/usecases/change_campaign_status.dart';
 import '../../domain/usecases/create_campaign.dart';
@@ -48,7 +48,7 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
       final allCampaigns = await getCampaigns();
 
       // Apply filters
-      List<Campaign> filteredCampaigns = allCampaigns.where((campaign) {
+      List<CampaignEntity> filteredCampaigns = allCampaigns.where((campaign) {
         // Search query filter
         final matchesSearch = event.searchQuery.isEmpty ||
             campaign.name
@@ -228,7 +228,7 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
       // If we already have campaigns loaded, keep them while loading details
       final currentCampaigns =
           state is CampaignsLoaded ? (state as CampaignsLoaded).campaigns : [];
-      emit(CampaignLoading(campaigns: currentCampaigns.cast<Campaign>()));
+      emit(CampaignLoading(campaigns: currentCampaigns.cast<CampaignEntity>()));
 
       final campaign = await getCampaign(event.id);
       emit(CampaignLoaded(campaign));

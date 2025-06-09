@@ -1,4 +1,5 @@
-import '../../domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
+
 import 'package:equatable/equatable.dart';
 
 abstract class CampaignState extends Equatable {
@@ -11,7 +12,7 @@ abstract class CampaignState extends Equatable {
 class CampaignInitial extends CampaignState {}
 
 class CampaignLoading extends CampaignState {
-  final List<Campaign> campaigns;
+  final List<CampaignEntity> campaigns;
 
   const CampaignLoading({this.campaigns = const []});
 
@@ -20,7 +21,7 @@ class CampaignLoading extends CampaignState {
 }
 
 class CampaignsLoaded extends CampaignState {
-  final List<Campaign> campaigns;
+  final List<CampaignEntity> campaigns;
   final bool hasReachedMax;
   final String? lastId;
 
@@ -31,7 +32,7 @@ class CampaignsLoaded extends CampaignState {
   });
 
   CampaignsLoaded copyWith({
-    List<Campaign>? campaigns,
+    List<CampaignEntity>? campaigns,
     bool? hasReachedMax,
     String? lastId,
   }) {
@@ -47,7 +48,7 @@ class CampaignsLoaded extends CampaignState {
 }
 
 class CampaignLoaded extends CampaignState {
-  final Campaign campaign;
+  final CampaignEntity campaign;
   const CampaignLoaded(this.campaign);
 
   @override
@@ -73,7 +74,7 @@ class CampaignImageUploaded extends CampaignState {
 
 class CampaignError extends CampaignState {
   final String message;
-  final List<Campaign> campaigns;
+  final List<CampaignEntity> campaigns;
 
   const CampaignError(this.message, {this.campaigns = const []});
 

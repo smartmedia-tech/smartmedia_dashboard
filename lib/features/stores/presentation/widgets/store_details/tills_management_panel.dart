@@ -192,11 +192,9 @@ class _TillCard extends StatelessWidget {
     final isOccupied = till.isOccupied;
     final color = isOccupied ? Colors.red : Colors.green;
     final bgColor = isOccupied ? Colors.red.shade50 : Colors.green.shade50;
-    final images = till.imageUrls.isNotEmpty
-        ? till.imageUrls
-        : till.imageUrl != null
-            ? [till.imageUrl!]
-            : [];
+    final images = till.images.isNotEmpty
+        ? till.images
+        : [];
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),

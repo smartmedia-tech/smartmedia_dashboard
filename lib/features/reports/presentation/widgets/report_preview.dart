@@ -17,7 +17,7 @@ class ReportPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalTills = stores.fold(0, (sum, store) => sum + store.totalTills);
     final occupiedTills =
-        stores.fold(0, (sum, store) => sum + store.occupiedTills);
+        stores.fold(0, (sum, store) => sum + (store.occupiedTills is int ? store.occupiedTills as int : (store.occupiedTills as List).length as int));
     final occupancyRate =
         totalTills > 0 ? (occupiedTills / totalTills) * 100 : 0.0;
 

@@ -31,7 +31,7 @@ class StoreCard extends StatelessWidget {
             Text(
               '${store.occupiedTills}/${store.totalTills} tills occupied',
               style: TextStyle(
-                color: store.occupiedTills > 0 ? Colors.green : Colors.orange,
+                color: store.occupiedTills.length > 0 ? Colors.green : Colors.orange,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -52,7 +52,7 @@ class StoreCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      store.imageUrl!,
+                      store.imageUrl ?? '',
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -97,8 +97,8 @@ class StoreCard extends StatelessWidget {
                       final till = store.tills[index];
                       return GestureDetector(
                         onTap: () {
-                          if (till.imageUrl != null ||
-                              till.imageUrls.isNotEmpty) {
+                          if (till.images != null ||
+                              till.images.isNotEmpty) {
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => TillImageGallery(
@@ -140,8 +140,8 @@ class StoreCard extends StatelessWidget {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
-                              if (till.imageUrl != null ||
-                                  till.imageUrls.isNotEmpty)
+                              if (till.images != null ||
+                                  till.images.isNotEmpty)
                                 Icon(
                                   Icons.camera_alt,
                                   size: 14,
