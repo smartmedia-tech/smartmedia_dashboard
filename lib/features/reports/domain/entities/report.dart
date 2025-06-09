@@ -5,7 +5,8 @@ import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stor
 class Report extends Equatable {
   final String id;
   final Campaign campaign;
-  final List<Store> stores;
+  final List<Store>
+      stores; // This list should hold the full Store objects for the report
   final DateTime generatedAt;
   final ReportStatus status;
   final ReportMetrics metrics;

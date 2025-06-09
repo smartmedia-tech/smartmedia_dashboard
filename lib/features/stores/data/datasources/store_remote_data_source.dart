@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
+import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_image.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_model.dart';
 import 'package:uuid/uuid.dart';
 
@@ -104,13 +105,18 @@ class StoreRemoteDataSource {
 
     final updatedTills = store.tills.map((till) {
       if (till.id == tillId) {
-        final updatedImages = [imageUrl, ...till.imageUrls];
-        if (till.imageUrl != null) {
-          updatedImages.add(till.imageUrl!);
-        }
+        final updatedImages = [
+          TillImage(
+            id: const Uuid().v4(),
+            imageUrl: imageUrl,
+            timestamp: DateTime.now(),
+            location: '', // Provide actual location if available
+            uploadedBy: '', // Provide actual uploader if available
+          ),
+          ...till.images
+        ];
         return till.copyWith(
-          imageUrl: imageUrl,
-          imageUrls: updatedImages,
+          images: updatedImages,
         );
       }
       return till;
@@ -134,9 +140,8 @@ class StoreRemoteDataSource {
     );
 
     final images = <String>[];
-    if (till.imageUrl != null) images.add(till.imageUrl!);
-    images.addAll(till.imageUrls);
-
+    images.addAll(till.images.map((img) => img.imageUrl));
+  
     return images;
   }
 

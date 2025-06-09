@@ -20,6 +20,17 @@ class Store extends Equatable {
     required this.tills,
     required this.createdAt,
   });
+  Till? getTill(String tillId) {
+    try {
+      return tills.firstWhere((t) => t.id == tillId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<Till> get occupiedTills => tills.where((t) => t.isOccupied).toList();
+
+  List<Till> get availableTills => tills.where((t) => !t.isOccupied).toList();
 
   @override
   List<Object?> get props =>
@@ -92,6 +103,6 @@ class Store extends Equatable {
   }
 
   int get totalTills => tills.length;
-  int get occupiedTills => tills.where((till) => till.isOccupied).length;
-  int get availableTills => totalTills - occupiedTills;
+  int get occupiedTillsCount => occupiedTills.length;
+  int get availableTillsCount => availableTills.length;
 }

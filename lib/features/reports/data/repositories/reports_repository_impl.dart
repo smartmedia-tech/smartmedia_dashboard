@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
 import 'package:smartmedia_campaign_manager/features/reports/data/models/report_model.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
+import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_model.dart';
 import '../../domain/repositories/reports_repository.dart';
 import '../../domain/entities/report.dart';
 
@@ -10,28 +11,27 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
   ReportsRepositoryImpl(this._firestore);
 
- @override
+  @override
   Future<List<Store>> getStoresForCampaign(String campaignId) async {
     try {
-      // Query stores where at least one till has the specified campaignId
-    final storesSnapshot = await _firestore
-          .collection('stores')
-    .where('tills', arrayContains: {'campaignId': campaignId})
-          .get();
-      // Filter stores and tills to only include relevant campaign data
-      final stores = storesSnapshot.docs
-          .map((doc) => Store.fromFirestore(doc))
-          .where((store) =>
-              store.tills.any((till) => till.campaignId == campaignId))
-          .map((store) {
-        // Create a copy of the store with only tills that have this campaign
-        final relevantTills =
-            store.tills.where((till) => till.campaignId == campaignId).toList();
+      // Fetch all stores and then filter client-side for tills with the campaignId.
+      // Firestore's arrayContains is not ideal for deeply nested complex objects.
+      final storesSnapshot = await _firestore.collection('stores').get();
 
-        return store.copyWith(tills: relevantTills);
-      }).toList();
+      final List<Store> campaignStores = [];
+      for (var doc in storesSnapshot.docs) {
+        final store = Store.fromFirestore(doc);
+        final relevantTills = store.tills
+            .where((till) => till.currentCampaignId == campaignId)
+            .toList();
 
-      return stores;
+        if (relevantTills.isNotEmpty) {
+          // If the store has tills associated with this campaign,
+          // create a copy of the store with only those relevant tills.
+          campaignStores.add(store.copyWith(tills: relevantTills));
+        }
+      }
+      return campaignStores;
     } catch (e) {
       throw Exception('Failed to get stores for campaign: $e');
     }
@@ -40,11 +40,13 @@ class ReportsRepositoryImpl implements ReportsRepository {
   @override
   Future<Report> generateReport(Campaign campaign, List<Store> stores) async {
     try {
-      final metrics = _calculateMetrics(stores);
+      final metrics = _calculateMetrics(campaign,
+          stores); // Pass campaign to metrics for potential future use
       final report = Report(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         campaign: campaign,
-        stores: stores,
+        stores:
+            stores, // Stores are passed here for calculation, but not saved in report document
         generatedAt: DateTime.now(),
         status: ReportStatus.completed,
         metrics: metrics,
@@ -73,7 +75,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
     }
   }
 
-@override
+  @override
   Future<void> saveReport(Report report) async {
     try {
       final reportModel = ReportModel.fromEntity(report);
@@ -93,23 +95,34 @@ class ReportsRepositoryImpl implements ReportsRepository {
     }
   }
 
-  ReportMetrics _calculateMetrics(List<Store> stores) {
+  // Pass campaign here to access campaign-specific properties if needed for metrics
+  ReportMetrics _calculateMetrics(Campaign campaign, List<Store> stores) {
     final totalStores = stores.length;
     final totalTills = stores.fold(0, (sum, store) => sum + store.totalTills);
-    final occupiedTills =
-        stores.fold(0, (sum, store) => sum + store.occupiedTills);
+
+    // Filter tills specific to the campaign in this report
+    final List<Till> campaignSpecificTills = stores
+        .expand((store) => store.tills)
+        .where((till) => till.currentCampaignId == campaign.id)
+        .toList();
+
+    final occupiedTills = campaignSpecificTills.length;
     final availableTills = totalTills - occupiedTills;
-    final storesWithImages =
-        stores.where((store) => store.imageUrl != null).length;
-    final tillsWithImages = stores.fold(
+
+    // Correctly check for store images (assuming Store.imageUrl is a single string or List<String>)
+    // If Store.imageUrl is a single String URL:
+    final storesWithImages = stores
+        .where((store) => store.imageUrl != null && store.imageUrl!.isNotEmpty)
+        .length;
+    // If Store.imageUrl is a List<String>:
+    // final storesWithImages = stores.where((store) => store.imageUrls != null && store.imageUrls!.isNotEmpty).length;
+
+    // Correctly check for till images (assuming Till.images is a List<TillImage>?)
+    final tillsWithImages = campaignSpecificTills.fold(
       0,
-      (sum, store) =>
-          sum +
-          store.tills
-              .where(
-                  (till) => till.imageUrl != null || till.imageUrls.isNotEmpty)
-              .length,
+      (sum, till) => sum + (till.images?.isNotEmpty == true ? 1 : 0),
     );
+
     final occupancyRate =
         totalTills > 0 ? (occupiedTills / totalTills) * 100 : 0.0;
 

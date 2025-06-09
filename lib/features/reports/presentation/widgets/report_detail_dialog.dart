@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_model.dart';
-import '../../domain/entities/report.dart';
+import '../../domain/entities/report.dart'; 
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html; // For web download
+import 'dart:html' as html; 
+import 'package:http/http.dart' as http; 
 
-class ReportDetailDialog extends StatelessWidget {
+class ReportDetailDialog extends StatefulWidget {
   final Report report;
   final Color primaryColor = const Color(0xFF1565C0);
   final Color secondaryColor = const Color(0xFF42A5F5);
@@ -18,6 +19,41 @@ class ReportDetailDialog extends StatelessWidget {
   final Color lightTextColor = const Color(0xFF666666);
 
   const ReportDetailDialog({super.key, required this.report});
+
+  @override
+  State<ReportDetailDialog> createState() => _ReportDetailDialogState();
+}
+
+class _ReportDetailDialogState extends State<ReportDetailDialog>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // Helper function to fetch image bytes from URL
+  Future<Uint8List?> _getImageBytesFromUrl(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      debugPrint('Failed to load image from $url: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching image from $url: $e');
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,29 +74,14 @@ class ReportDetailDialog extends StatelessWidget {
               _buildHeader(context),
               _buildTabBar(),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionTitle('01', 'STORE LIST'),
-                      const SizedBox(height: 16),
-                      if (report.stores.isEmpty) 
-                        _buildEmptyState('No stores available for this campaign')
-                      else
-                        ..._buildStoreSections(),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('02', 'GEOTAGGED IMAGES'),
-                      const SizedBox(height: 16),
-                      _buildImageGallery(),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('03', 'SUMMARY'),
-                      const SizedBox(height: 16),
-                      _buildSummaryMetrics(),
-                      const SizedBox(height: 32),
-                      _buildThankYou(),
-                    ],
-                  ),
+                child: TabBarView(
+                  // Use TabBarView to switch content
+                  controller: _tabController,
+                  children: [
+                    _buildStoreListTab(),
+                    _buildGeotaggedImagesTab(),
+                    _buildSummaryTab(),
+                  ],
                 ),
               ),
             ],
@@ -70,25 +91,81 @@ class ReportDetailDialog extends StatelessWidget {
     );
   }
 
+  Widget _buildStoreListTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('01', 'STORE LIST'),
+          const SizedBox(height: 16),
+          if (widget.report.stores.isEmpty)
+            _buildEmptyState('No stores available for this campaign')
+          else
+            ..._buildStoreSections(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeotaggedImagesTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('02', 'GEOTAGGED IMAGES'),
+          const SizedBox(height: 16),
+          _buildImageGallery(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('03', 'SUMMARY'),
+          const SizedBox(height: 16),
+          _buildSummaryMetrics(),
+          const SizedBox(height: 32),
+          _buildThankYou(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTabBar() {
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        color: accentColor,
+        color: widget.accentColor,
         border: Border(
           bottom: BorderSide(color: Colors.grey.shade200),
         ),
       ),
       child: Row(
         children: [
-          _buildTabButton('STORE LIST', 0),
-          _buildTabButton('GEOTAGGED IMAGES', 1),
-          _buildTabButton('SUMMARY', 2),
-          const Spacer(),
+          Expanded(
+            child: TabBar(
+              controller: _tabController,
+              labelColor: widget.primaryColor,
+              unselectedLabelColor: widget.lightTextColor,
+              indicatorColor: widget.primaryColor,
+              tabs: const [
+                Tab(text: 'STORES'),
+                Tab(text: 'IMAGES'),
+                Tab(text: 'SUMMARY'),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: IconButton(
-              icon: Icon(Icons.share, color: primaryColor),
+              icon: Icon(Icons.picture_as_pdf, color: widget.primaryColor),
               tooltip: 'Export as PDF',
               onPressed: () => _generateAndSharePdf(),
             ),
@@ -101,10 +178,11 @@ class ReportDetailDialog extends StatelessWidget {
   // Load custom font for Unicode support
   Future<pw.Font> _loadFont() async {
     try {
-      final fontData = await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
+      final fontData =
+          await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
       return pw.Font.ttf(fontData);
     } catch (e) {
-      // Fallback to a default font if custom font fails
+      debugPrint('Error loading NotoSans-Regular.ttf: $e');
       return pw.Font.helvetica();
     }
   }
@@ -114,21 +192,88 @@ class ReportDetailDialog extends StatelessWidget {
       final fontData = await rootBundle.load('assets/fonts/NotoSans-Bold.ttf');
       return pw.Font.ttf(fontData);
     } catch (e) {
-      // Fallback to a default font if custom font fails
+      debugPrint('Error loading NotoSans-Bold.ttf: $e');
       return pw.Font.helveticaBold();
     }
   }
 
   Future<void> _generateAndSharePdf() async {
     try {
-      // Load fonts
       final regularFont = await _loadFont();
       final boldFont = await _loadBoldFont();
 
-      // Create PDF document
       final pdf = pw.Document();
 
-      // Add page to PDF
+      // Collect all images with their metadata for PDF
+      final List<Map<String, dynamic>> allPdfImagesData = [];
+      for (final store in widget.report.stores) {
+        if (store.imageUrl != null && store.imageUrl!.isNotEmpty) {
+          allPdfImagesData.add({
+            'url': store.imageUrl!,
+            'caption': '${store.name} - Storefront',
+            'timestamp': '', // Store images might not have timestamps
+          });
+        }
+        for (final till in store.tills) {
+          for (final tillImage in till.images ?? []) {
+            // Use null-aware operator
+            allPdfImagesData.add({
+              'url': tillImage.imageUrl,
+              'caption': '${store.name} - Till ${till.number}',
+              'timestamp': _formatDateTime(tillImage.timestamp),
+            });
+          }
+        }
+      }
+
+      // Prepare image widgets for PDF by downloading bytes
+      final List<pw.Widget> pdfImageWidgets = [];
+      for (final imgData in allPdfImagesData) {
+        final imageUrl = imgData['url'] as String;
+        final caption = imgData['caption'] as String;
+        final timestamp = imgData['timestamp'] as String;
+
+        final Uint8List? imageBytes = await _getImageBytesFromUrl(imageUrl);
+        if (imageBytes != null) {
+          pdfImageWidgets.add(
+            pw.Column(
+              children: [
+                pw.Expanded(
+                  child: pw.Image(pw.MemoryImage(
+                      imageBytes)), // Use pw.Image with pw.MemoryImage
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  caption,
+                  style: pw.TextStyle(fontSize: 8, font: regularFont),
+                  textAlign: pw.TextAlign.center,
+                ),
+                if (timestamp.isNotEmpty)
+                  pw.Text(
+                    timestamp,
+                    style: pw.TextStyle(
+                      fontSize: 7,
+                      font: regularFont,
+                      color: PdfColors.grey,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+              ],
+            ),
+          );
+        } else {
+          // Add a placeholder or an error message in the PDF for failed images
+          pdfImageWidgets.add(
+            pw.Container(
+              alignment: pw.Alignment.center,
+              child: pw.Text('Image failed to load: $caption',
+                  style: pw.TextStyle(
+                      fontSize: 8, font: regularFont, color: PdfColors.red)),
+            ),
+          );
+        }
+      }
+
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -160,7 +305,7 @@ class ReportDetailDialog extends StatelessWidget {
                         ),
                         pw.SizedBox(height: 8),
                         pw.Text(
-                          report.campaign.name,
+                          widget.report.campaign.name,
                           style: pw.TextStyle(
                             fontSize: 18,
                             font: regularFont,
@@ -169,7 +314,7 @@ class ReportDetailDialog extends StatelessWidget {
                       ],
                     ),
                     pw.Text(
-                      'Generated: ${DateTime.now().toString().split('.')[0]}',
+                      'Generated: ${_formatDateTime(widget.report.generatedAt)}',
                       style: pw.TextStyle(
                         fontSize: 10,
                         font: regularFont,
@@ -179,9 +324,9 @@ class ReportDetailDialog extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 30),
-              
+
               // Store List Section
               pw.Text(
                 '01 - STORE LIST',
@@ -193,63 +338,94 @@ class ReportDetailDialog extends StatelessWidget {
                 ),
               ),
               pw.SizedBox(height: 15),
-              
+
               // Stores
-              ...report.stores.map((store) => pw.Container(
-                margin: const pw.EdgeInsets.only(bottom: 20),
-                padding: const pw.EdgeInsets.all(16),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey300),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      store.name,
-                      style: pw.TextStyle(
-                        fontSize: 14,
-                        fontWeight: pw.FontWeight.bold,
-                        font: boldFont,
+              if (widget.report.stores.isEmpty)
+                pw.Text('No stores available for this campaign',
+                    style: pw.TextStyle(font: regularFont))
+              else
+                ...widget.report.stores.map((store) => pw.Container(
+                      margin: const pw.EdgeInsets.only(bottom: 20),
+                      padding: const pw.EdgeInsets.all(16),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius:
+                            const pw.BorderRadius.all(pw.Radius.circular(8)),
                       ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      'Site #${store.siteNumber} • ${store.region}',
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        font: regularFont,
-                        color: PdfColors.grey,
-                      ),
-                    ),
-                    if (store.tills.isNotEmpty) ...[
-                      pw.SizedBox(height: 12),
-                      pw.Text(
-                        'Tills (${store.tills.length})',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          fontWeight: pw.FontWeight.bold,
-                          font: boldFont,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      ...store.tills.map((till) => pw.Padding(
-                        padding: const pw.EdgeInsets.only(left: 16, bottom: 4),
-                        child: pw.Text(
-                          'Till ${till.number} - ${till.isOccupied ? "Occupied" : "Available"}',
-                          style: pw.TextStyle(
-                            fontSize: 10,
-                            font: regularFont,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            store.name,
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                              font: boldFont,
+                            ),
                           ),
-                        ),
-                      )),
-                    ],
-                  ],
-                ),
-              )),
-              
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            'Site #${store.siteNumber} • ${store.region}',
+                            style: pw.TextStyle(
+                              fontSize: 12,
+                              font: regularFont,
+                              color: PdfColors.grey,
+                            ),
+                          ),
+                          if (store.tills.isNotEmpty) ...[
+                            pw.SizedBox(height: 12),
+                            pw.Text(
+                              'Tills (${store.tills.length})',
+                              style: pw.TextStyle(
+                                fontSize: 12,
+                                fontWeight: pw.FontWeight.bold,
+                                font: boldFont,
+                              ),
+                            ),
+                            pw.SizedBox(height: 8),
+                            ...store.tills.map((till) => pw.Padding(
+                                  padding: const pw.EdgeInsets.only(
+                                      left: 16, bottom: 4),
+                                  child: pw.Text(
+                                    'Till ${till.number} - ${till.isOccupied ? "Occupied" : "Available"}',
+                                    style: pw.TextStyle(
+                                      fontSize: 10,
+                                      font: regularFont,
+                                    ),
+                                  ),
+                                )),
+                          ],
+                        ],
+                      ),
+                    )),
+
               pw.SizedBox(height: 30),
-              
+
+              // Geotagged Images Section
+              pw.Text(
+                '02 - GEOTAGGED IMAGES',
+                style: pw.TextStyle(
+                  fontSize: 16,
+                  fontWeight: pw.FontWeight.bold,
+                  font: boldFont,
+                  color: PdfColors.blue,
+                ),
+              ),
+              pw.SizedBox(height: 15),
+              if (pdfImageWidgets.isEmpty) // Check the prepared list
+                pw.Text('No geotagged images available.',
+                    style: pw.TextStyle(font: regularFont))
+              else
+                pw.GridView(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  children: pdfImageWidgets, // Use the prepared list of widgets
+                ),
+
+              pw.SizedBox(height: 30),
+
               // Summary Section
               pw.Text(
                 '03 - SUMMARY',
@@ -261,28 +437,41 @@ class ReportDetailDialog extends StatelessWidget {
                 ),
               ),
               pw.SizedBox(height: 15),
-              
+
               pw.Container(
                 padding: const pw.EdgeInsets.all(16),
                 decoration: pw.BoxDecoration(
                   color: PdfColors.blue50,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(8)),
                 ),
                 child: pw.Column(
                   children: [
-                    _buildPdfMetricRow('Total Stores', report.metrics.totalStores.toString(), regularFont),
+                    _buildPdfMetricRow(
+                        'Total Stores',
+                        widget.report.metrics.totalStores.toString(),
+                        regularFont),
                     pw.SizedBox(height: 8),
-                    _buildPdfMetricRow('Total Tills', report.metrics.totalTills.toString(), regularFont),
+                    _buildPdfMetricRow(
+                        'Total Tills',
+                        widget.report.metrics.totalTills.toString(),
+                        regularFont),
                     pw.SizedBox(height: 8),
-                    _buildPdfMetricRow('Occupied Tills', report.metrics.occupiedTills.toString(), regularFont),
+                    _buildPdfMetricRow(
+                        'Occupied Tills',
+                        widget.report.metrics.occupiedTills.toString(),
+                        regularFont),
                     pw.SizedBox(height: 8),
-                    _buildPdfMetricRow('Occupancy Rate', '${report.metrics.occupancyRate.toStringAsFixed(1)}%', regularFont),
+                    _buildPdfMetricRow(
+                        'Occupancy Rate',
+                        '${widget.report.metrics.occupancyRate.toStringAsFixed(1)}%',
+                        regularFont),
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 40),
-              
+
               // Thank you section
               pw.Center(
                 child: pw.Column(
@@ -313,24 +502,26 @@ class ReportDetailDialog extends StatelessWidget {
         ),
       );
 
-      // Generate and save PDF
       final Uint8List bytes = await pdf.save();
-      final filename = '${report.campaign.name}_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final filename =
+          '${widget.report.campaign.name}_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       if (kIsWeb) {
-        // Web-specific download
         _downloadFileWeb(bytes, filename);
       } else {
-        // Mobile/Desktop sharing
         await _sharePdfMobile(bytes, filename);
       }
     } catch (e) {
       debugPrint('Error generating PDF: $e');
-      // Handle error appropriately - maybe show a snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to generate PDF: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  // Web download function
   void _downloadFileWeb(Uint8List bytes, String filename) {
     final blob = html.Blob([bytes], 'application/pdf');
     final url = html.Url.createObjectUrlFromBlob(blob);
@@ -344,12 +535,12 @@ class ReportDetailDialog extends StatelessWidget {
     html.Url.revokeObjectUrl(url);
   }
 
-  // Mobile sharing function
   Future<void> _sharePdfMobile(Uint8List bytes, String filename) async {
     try {
       await Printing.sharePdf(bytes: bytes, filename: filename);
     } catch (e) {
-      // Fallback: Save to device storage
+      debugPrint('Error sharing PDF on mobile: $e');
+      // Fallback to saving if sharing fails
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => bytes,
         name: filename,
@@ -378,12 +569,11 @@ class ReportDetailDialog extends StatelessWidget {
     );
   }
 
-  // Rest of your existing methods remain the same...
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: primaryColor,
+        color: widget.primaryColor,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(8),
           topRight: Radius.circular(8),
@@ -402,7 +592,7 @@ class ReportDetailDialog extends StatelessWidget {
               child: Text(
                 'SM',
                 style: TextStyle(
-                  color: primaryColor,
+                  color: widget.primaryColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -425,7 +615,7 @@ class ReportDetailDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  report.campaign.name,
+                  widget.report.campaign.name,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -446,32 +636,6 @@ class ReportDetailDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildTabButton(String title, int index) {
-    return Container(
-      width: 180,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: index == 0 ? primaryColor : Colors.transparent,
-            width: 2,
-          ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: index == 0 ? primaryColor : lightTextColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(String number, String title) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -480,7 +644,7 @@ class ReportDetailDialog extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: primaryColor,
+            color: widget.primaryColor,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(
@@ -498,7 +662,7 @@ class ReportDetailDialog extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            color: textColor,
+            color: widget.textColor,
             fontWeight: FontWeight.bold,
             fontSize: 16,
             letterSpacing: 0.5,
@@ -509,7 +673,7 @@ class ReportDetailDialog extends StatelessWidget {
   }
 
   List<Widget> _buildStoreSections() {
-    return report.stores.map((store) {
+    return widget.report.stores.map((store) {
       return Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
@@ -540,7 +704,7 @@ class ReportDetailDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: textColor,
+                          color: widget.textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -548,13 +712,13 @@ class ReportDetailDialog extends StatelessWidget {
                         'Site #${store.siteNumber} • ${store.region}',
                         style: TextStyle(
                           fontSize: 13,
-                          color: lightTextColor,
+                          color: widget.lightTextColor,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (store.imageUrl != null)
+                if (store.imageUrl != null && store.imageUrl!.isNotEmpty)
                   _buildResponsiveImage(store.imageUrl!),
               ],
             ),
@@ -565,14 +729,15 @@ class ReportDetailDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: textColor,
+                  color: widget.textColor,
                 ),
               ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: store.tills.map((till) => _buildTillItem(till)).toList(),
+                children:
+                    store.tills.map((till) => _buildTillItem(till)).toList(),
               ),
             ],
           ],
@@ -598,6 +763,9 @@ class ReportDetailDialog extends StatelessWidget {
             child: Image.network(
               url,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Icon(Icons.broken_image, color: Colors.grey.shade400),
+              ),
             ),
           ),
         );
@@ -624,14 +792,17 @@ class ReportDetailDialog extends StatelessWidget {
                   'Till ${till.number}',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: textColor,
+                    color: widget.textColor,
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: till.isOccupied ? Colors.orange.shade50 : Colors.green.shade50,
+                    color: till.isOccupied
+                        ? Colors.orange.shade50
+                        : Colors.green.shade50,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: till.isOccupied ? Colors.orange : Colors.green,
@@ -649,16 +820,15 @@ class ReportDetailDialog extends StatelessWidget {
                 ),
               ],
             ),
-            if (till.imageUrl != null || till.imageUrls.isNotEmpty) ...[
+            if (till.images?.isNotEmpty == true) ...[
+              // Null-safe check
               const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: [
-                    if (till.imageUrl != null)
-                      _buildImageThumbnail(till.imageUrl!),
-                    ...till.imageUrls.map((url) => _buildImageThumbnail(url)).toList(),
-                  ],
+                  children: till.images!
+                      .map((img) => _buildImageThumbnail(img.imageUrl))
+                      .toList(),
                 ),
               ),
             ],
@@ -691,36 +861,122 @@ class ReportDetailDialog extends StatelessWidget {
   }
 
   Widget _buildImageGallery() {
-    final allImages = <String>[];
-    
-    for (final store in report.stores) {
-      if (store.imageUrl != null) allImages.add(store.imageUrl!);
+    // Structure to hold image data with associated store/till info
+    final List<Map<String, dynamic>> allImagesWithMetadata = [];
+
+    for (final store in widget.report.stores) {
+      if (store.imageUrl != null && store.imageUrl!.isNotEmpty) {
+        allImagesWithMetadata.add({
+          'url': store.imageUrl!,
+          'storeName': store.name,
+          'tillNumber': null, // Store image, no till number
+          'timestamp': null, // Store image, no specific timestamp
+        });
+      }
       for (final till in store.tills) {
-        if (till.imageUrl != null) allImages.add(till.imageUrl!);
-        allImages.addAll(till.imageUrls);
+        for (final tillImage in till.images ?? []) {
+          // Use null-aware operator
+          allImagesWithMetadata.add({
+            'url': tillImage.imageUrl,
+            'storeName': store.name,
+            'tillNumber': till.number,
+            'timestamp': tillImage.timestamp,
+          });
+        }
       }
     }
-    
-    if (allImages.isEmpty) {
-      return _buildEmptyState('No geotagged images available');
+
+    if (allImagesWithMetadata.isEmpty) {
+      return _buildEmptyState('No geotagged images available.');
     }
-    
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1,
+        crossAxisCount: 2, // Changed to 2 for better readability of metadata
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.8, // Adjusted for more content below image
       ),
-      itemCount: allImages.length,
+      itemCount: allImagesWithMetadata.length,
       itemBuilder: (context, index) {
+        final imgData = allImagesWithMetadata[index];
+        final imageUrl = imgData['url'] as String;
+        final storeName = imgData['storeName'] as String;
+        final tillNumber = imgData['tillNumber'] as int?;
+        final timestamp = imgData['timestamp'] as DateTime?;
+
         return GestureDetector(
-          onTap: () => _showFullScreenImage(context, allImages[index]),
-          child: _buildImageThumbnail(allImages[index]),
+          onTap: () => _showFullScreenImage(context, imageUrl),
+          child: _buildImageCard(
+            imageUrl,
+            storeName,
+            tillNumber,
+            timestamp,
+          ),
         );
       },
+    );
+  }
+
+  Widget _buildImageCard(
+      String imageUrl, String storeName, int? tillNumber, DateTime? timestamp) {
+    return Card(
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Icon(Icons.broken_image,
+                      color: Colors.grey.shade400, size: 40),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  storeName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: widget.textColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (tillNumber != null)
+                  Text(
+                    'Till: $tillNumber',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: widget.lightTextColor,
+                    ),
+                  ),
+                if (timestamp != null)
+                  Text(
+                    _formatDateTime(timestamp),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -728,14 +984,34 @@ class ReportDetailDialog extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        child: InteractiveViewer(
-          panEnabled: true,
-          minScale: 0.5,
-          maxScale: 3.0,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-          ),
+        backgroundColor: Colors.black.withOpacity(0.8),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 3.0,
+              child: Center(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white,
+                    size: 100,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -746,26 +1022,28 @@ class ReportDetailDialog extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: accentColor,
+        color: widget.accentColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
-          _buildMetricRow('Total Stores', report.metrics.totalStores),
+          _buildMetricRow('Total Stores', widget.report.metrics.totalStores),
           const Divider(height: 20, color: Colors.grey),
-          _buildMetricRow('Total Tills', report.metrics.totalTills),
+          _buildMetricRow('Total Tills', widget.report.metrics.totalTills),
           const Divider(height: 20, color: Colors.grey),
-          _buildMetricRow('Occupied Tills', report.metrics.occupiedTills),
+          _buildMetricRow(
+              'Occupied Tills', widget.report.metrics.occupiedTills),
           const Divider(height: 20, color: Colors.grey),
-          _buildMetricRow('Occupancy Rate', report.metrics.occupancyRate,
+          _buildMetricRow('Occupancy Rate', widget.report.metrics.occupancyRate,
               isPercentage: true),
         ],
       ),
     );
   }
 
-  Widget _buildMetricRow(String label, dynamic value, {bool isPercentage = false}) {
+  Widget _buildMetricRow(String label, dynamic value,
+      {bool isPercentage = false}) {
     return Row(
       children: [
         Expanded(
@@ -774,18 +1052,16 @@ class ReportDetailDialog extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: lightTextColor,
+              color: widget.lightTextColor,
             ),
           ),
         ),
         Text(
-          isPercentage 
-              ? '${value.toStringAsFixed(1)}%' 
-              : value.toString(),
+          isPercentage ? '${value.toStringAsFixed(1)}%' : value.toString(),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: primaryColor,
+            color: widget.primaryColor,
           ),
         ),
       ],
@@ -799,7 +1075,7 @@ class ReportDetailDialog extends StatelessWidget {
         Text(
           'THANK YOU',
           style: TextStyle(
-            color: primaryColor,
+            color: widget.primaryColor,
             fontSize: 18,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
@@ -809,7 +1085,7 @@ class ReportDetailDialog extends StatelessWidget {
         Text(
           'For using our campaign management system',
           style: TextStyle(
-            color: lightTextColor,
+            color: widget.lightTextColor,
             fontSize: 14,
           ),
         ),
@@ -838,7 +1114,7 @@ class ReportDetailDialog extends StatelessWidget {
               message,
               style: TextStyle(
                 fontSize: 14,
-                color: lightTextColor,
+                color: widget.lightTextColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -846,5 +1122,9 @@ class ReportDetailDialog extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

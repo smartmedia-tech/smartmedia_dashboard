@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/data/models/campaign_model.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
 import 'package:smartmedia_campaign_manager/injection_container.dart' as di;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:smartmedia_campaign_manager/config/theme/colors.dart';
 
 class CampaignFormDialog extends StatefulWidget {
-  final Campaign? campaign;
-  final Function(Campaign, File?) onSubmit;
+  final CampaignEntity? campaign;
+  final Function(CampaignEntity, File?) onSubmit;
 
   const CampaignFormDialog({
     super.key,
@@ -72,7 +73,8 @@ class _CampaignFormDialogState extends State<CampaignFormDialog>
     super.dispose();
   }
 
-  Future<void> _submitForm() async {
+ 
+Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (_endDate.isBefore(_startDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,14 +91,26 @@ class _CampaignFormDialogState extends State<CampaignFormDialog>
       _isSubmitted = true;
     });
 
-    final campaign = Campaign(
+    // Use CampaignModel instead of Campaign
+    final campaign = CampaignModel(
       id: widget.campaign?.id ?? '',
       name: _nameController.text.trim(),
       description: _descController.text.trim(),
+      clientId: widget.campaign?.clientId ??
+          '', // Provide default or get from somewhere
       startDate: _startDate,
       endDate: _endDate,
       status: _status,
       clientLogoUrl: _imageUrl ?? widget.campaign?.clientLogoUrl,
+      storeIds: widget.campaign?.storeIds ?? [],
+      deployments: widget.campaign?.deployments ?? [],
+      // Add other required fields as needed:
+      clientName: widget.campaign?.clientName,
+      imageUrls: widget.campaign?.imageUrls,
+      createdAt: widget.campaign?.createdAt,
+      updatedAt: DateTime.now(),
+      stores: widget.campaign?.stores,
+      occupiedTillImages: widget.campaign?.occupiedTillImages,
     );
 
     widget.onSubmit(campaign, _imageFile);

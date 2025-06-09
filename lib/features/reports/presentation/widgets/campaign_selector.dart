@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart'; 
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_state.dart';
 
 import '../bloc/reports_bloc.dart';
 import '../bloc/reports_event.dart';
+
 class CampaignSelector extends StatelessWidget {
   const CampaignSelector({Key? key}) : super(key: key);
 
@@ -27,13 +28,25 @@ class CampaignSelector extends StatelessWidget {
             );
           }
 
+          // Get the currently selected campaign from ReportsBloc state for initial value
+          final currentReportsState = context.watch<ReportsBloc>().state;
+          Campaign? selectedCampaign;
+          if (currentReportsState is ReportsLoaded) {
+            selectedCampaign = currentReportsState.selectedCampaign;
+          }
+
           return DropdownButtonFormField<Campaign>(
+            // Use Campaign directly
             decoration: const InputDecoration(
               labelText: 'Select Campaign',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.campaign),
             ),
-            items: campaigns.map((campaign) {
+            value: selectedCampaign, // Set initial value
+            items: campaigns.map((campaignEntity) {
+              // Cast CampaignEntity to Campaign if Campaign is a concrete implementation
+              // or ensure your CampaignsLoaded state returns Campaign objects.
+              final campaign = campaignEntity as Campaign;
               return DropdownMenuItem<Campaign>(
                 value: campaign,
                 child: Text(
@@ -43,7 +56,6 @@ class CampaignSelector extends StatelessWidget {
                   maxLines: 1,
                 ),
               );
-              
             }).toList(),
             onChanged: (campaign) {
               if (campaign != null) {

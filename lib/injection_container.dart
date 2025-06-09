@@ -56,7 +56,7 @@ Future<void> init() async {
 
   // 🏗️ Repository
   sl.registerLazySingleton<CampaignRepository>(
-    () => CampaignRepositoryImpl(sl<CampaignRemoteDataSource>()),
+    () => CampaignRepositoryImpl(remoteDataSource: sl<CampaignRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<StoreRepository>(

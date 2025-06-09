@@ -111,7 +111,7 @@ class TillOptionsDialog extends StatelessWidget {
           color: Colors.blue,
           onTap: () => _addImage(context),
         ),
-        if (till.imageUrls.isNotEmpty) ...[
+        if (till.images.isNotEmpty) ...[
           const SizedBox(height: 12),
           _buildActionCard(
             icon: Icons.photo_library_outlined,

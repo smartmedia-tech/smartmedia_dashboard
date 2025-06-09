@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 import '../../domain/entities/report.dart';
 
 class ReportModel extends Report {
-  ReportModel({
+  const ReportModel({
     required super.id,
     required super.campaign,
     required super.stores,
@@ -16,6 +17,8 @@ class ReportModel extends Report {
     return {
       'campaignId': campaign.id,
       'campaignName': campaign.name,
+      // Only store store IDs in the report model to keep it lean.
+      // Full store objects are not typically embedded for performance and normalization.
       'storeIds': stores.map((store) => store.id).toList(),
       'generatedAt': Timestamp.fromDate(generatedAt),
       'status': status.index,
@@ -28,6 +31,14 @@ class ReportModel extends Report {
         'tillsWithImages': metrics.tillsWithImages,
         'occupancyRate': metrics.occupancyRate,
       },
+      // You might want to embed basic campaign details if not fetching full campaign later
+      'campaignDescription': campaign.description,
+      'campaignStartDate': campaign.startDate,
+      'campaignEndDate': campaign.endDate,
+      'campaignClientId': campaign.clientId,
+      'campaignClientName': campaign.clientName,
+      'campaignClientLogoUrl': campaign.clientLogoUrl,
+      'campaignStatus': campaign.status.index,
     };
   }
 
@@ -38,13 +49,23 @@ class ReportModel extends Report {
     return ReportModel(
       id: doc.id,
       campaign: Campaign(
-        id: data['campaignId'],
-        name: data['campaignName'],
-        description: '',
-        startDate: DateTime.now(),
-        endDate: DateTime.now(),
+        // Reconstruct basic Campaign object from embedded data
+        id: data['campaignId'] ?? '',
+        name: data['campaignName'] ?? '',
+        description: data['campaignDescription'] ?? '',
+        clientId: data['campaignClientId'] ?? '',
+        clientLogoUrl: data['campaignClientLogoUrl'],
+        clientName: data['campaignClientName'],
+        startDate: (data['campaignStartDate'] as Timestamp?)?.toDate() ??
+            DateTime(2000), // Default date if null
+        endDate: (data['campaignEndDate'] as Timestamp?)?.toDate() ??
+            DateTime(2000), // Default date if null
+        status: CampaignStatus
+            .values[data['campaignStatus'] ?? CampaignStatus.draft.index],
       ),
-      stores: const[], 
+      // Stores are not embedded in the report document directly.
+      // They will be fetched separately if needed for detailed display.
+      stores: const [],
       generatedAt: (data['generatedAt'] as Timestamp).toDate(),
       status: ReportStatus.values[data['status'] ?? 0],
       metrics: ReportMetrics(

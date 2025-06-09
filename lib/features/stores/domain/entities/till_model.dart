@@ -1,56 +1,75 @@
 import 'package:equatable/equatable.dart';
+import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_image.dart';
+
 class Till extends Equatable {
   final String id;
   final bool isOccupied;
   final int number;
-  final String? imageUrl;
-  final List<String> imageUrls;
-  final String? campaignId; // New field
-  final String? campaignName; // New field
-  final DateTime? campaignDeployedAt; // New field
+  final List<TillImage> images;
+  final DateTime? lastOccupiedTimestamp;
+  final String? lastOccupiedBy;
+  final String? lastOccupiedLocation;
+  final String? currentCampaignId;
+  final String? currentCampaignName;
 
   const Till({
     required this.id,
     required this.isOccupied,
     required this.number,
-    this.imageUrl,
-    this.imageUrls = const [],
-    this.campaignId,
-    this.campaignName,
-    this.campaignDeployedAt,
+    this.images = const [],
+    this.lastOccupiedTimestamp,
+    this.lastOccupiedBy,
+    this.lastOccupiedLocation,
+    this.currentCampaignId,
+    this.currentCampaignName,
   });
+
+  // Helper getters
+  String? get displayImage => images.isNotEmpty ? images.last.imageUrl : null;
+
+  TillImage? get lastOccupationImage {
+    try {
+      return images.lastWhere((img) => img.isOccupiedImage);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   List<Object?> get props => [
         id,
         isOccupied,
         number,
-        imageUrl,
-        imageUrls,
-        campaignId,
-        campaignName,
-        campaignDeployedAt
+        images,
+        lastOccupiedTimestamp,
+        lastOccupiedBy,
+        lastOccupiedLocation,
+        currentCampaignId,
+        currentCampaignName,
       ];
 
   Till copyWith({
     String? id,
     bool? isOccupied,
     int? number,
-    String? imageUrl,
-    List<String>? imageUrls,
-    String? campaignId,
-    String? campaignName,
-    DateTime? campaignDeployedAt,
+    List<TillImage>? images,
+    DateTime? lastOccupiedTimestamp,
+    String? lastOccupiedBy,
+    String? lastOccupiedLocation,
+    String? currentCampaignId,
+    String? currentCampaignName,
   }) {
     return Till(
       id: id ?? this.id,
       isOccupied: isOccupied ?? this.isOccupied,
       number: number ?? this.number,
-      imageUrl: imageUrl ?? this.imageUrl,
-      imageUrls: imageUrls ?? this.imageUrls,
-      campaignId: campaignId ?? this.campaignId,
-      campaignName: campaignName ?? this.campaignName,
-      campaignDeployedAt: campaignDeployedAt ?? this.campaignDeployedAt,
+      images: images ?? this.images,
+      lastOccupiedTimestamp:
+          lastOccupiedTimestamp ?? this.lastOccupiedTimestamp,
+      lastOccupiedBy: lastOccupiedBy ?? this.lastOccupiedBy,
+      lastOccupiedLocation: lastOccupiedLocation ?? this.lastOccupiedLocation,
+      currentCampaignId: currentCampaignId ?? this.currentCampaignId,
+      currentCampaignName: currentCampaignName ?? this.currentCampaignName,
     );
   }
 
@@ -59,11 +78,12 @@ class Till extends Equatable {
       'id': id,
       'isOccupied': isOccupied,
       'number': number,
-      'imageUrl': imageUrl,
-      'imageUrls': imageUrls,
-      'campaignId': campaignId,
-      'campaignName': campaignName,
-      'campaignDeployedAt': campaignDeployedAt?.toIso8601String(),
+      'images': images.map((image) => image.toMap()).toList(),
+      'lastOccupiedTimestamp': lastOccupiedTimestamp?.toIso8601String(),
+      'lastOccupiedBy': lastOccupiedBy,
+      'lastOccupiedLocation': lastOccupiedLocation,
+      'currentCampaignId': currentCampaignId,
+      'currentCampaignName': currentCampaignName,
     };
   }
 
@@ -72,15 +92,17 @@ class Till extends Equatable {
       id: map['id'] ?? '',
       isOccupied: map['isOccupied'] ?? false,
       number: map['number'] ?? 0,
-      imageUrl: map['imageUrl'],
-      imageUrls: List<String>.from(map['imageUrls'] ?? []),
-      campaignId: map['campaignId'],
-      campaignName: map['campaignName'],
-      campaignDeployedAt: map['campaignDeployedAt'] != null
-          ? DateTime.parse(map['campaignDeployedAt'])
+      images: (map['images'] as List<dynamic>?)
+              ?.map((e) => TillImage.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      lastOccupiedTimestamp: map['lastOccupiedTimestamp'] != null
+          ? DateTime.tryParse(map['lastOccupiedTimestamp'])
           : null,
+      lastOccupiedBy: map['lastOccupiedBy'],
+      lastOccupiedLocation: map['lastOccupiedLocation'],
+      currentCampaignId: map['currentCampaignId'],
+      currentCampaignName: map['currentCampaignName'],
     );
   }
-
-  bool get hasCampaign => campaignId != null;
 }
