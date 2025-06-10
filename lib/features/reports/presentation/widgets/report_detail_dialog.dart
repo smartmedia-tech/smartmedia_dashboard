@@ -215,7 +215,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog>
           });
         }
         for (final till in store.tills) {
-          for (final tillImage in till.images ?? []) {
+          for (final tillImage in till.images ) {
             // Use null-aware operator
             allPdfImagesData.add({
               'url': tillImage.imageUrl,
@@ -820,13 +820,13 @@ class _ReportDetailDialogState extends State<ReportDetailDialog>
                 ),
               ],
             ),
-            if (till.images?.isNotEmpty == true) ...[
+            if (till.images.isNotEmpty == true) ...[
               // Null-safe check
               const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: till.images!
+                  children: till.images
                       .map((img) => _buildImageThumbnail(img.imageUrl))
                       .toList(),
                 ),
@@ -874,7 +874,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog>
         });
       }
       for (final till in store.tills) {
-        for (final tillImage in till.images ?? []) {
+        for (final tillImage in till.images ) {
           // Use null-aware operator
           allImagesWithMetadata.add({
             'url': tillImage.imageUrl,

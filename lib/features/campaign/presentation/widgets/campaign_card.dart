@@ -1,251 +1,187 @@
-import 'package:cached_network_image/cached_network_image.dart';
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:smartmedia_campaign_manager/core/utils/function_utils.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
 
 class CampaignCard extends StatelessWidget {
   final CampaignEntity campaign;
-  final Function(String) onDelete;
-  final Function(CampaignEntity) onEdit;
-  final Function(CampaignEntity) onViewDetails;
+  final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const CampaignCard({
     super.key,
     required this.campaign,
-    required this.onDelete,
-    required this.onEdit,
-    required this.onViewDetails,
+    required this.onTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final statusColor = getStatusColor(campaign.status);
-    final now = DateTime.now();
-    final isActive =
-        now.isAfter(campaign.startDate) && now.isBefore(campaign.endDate);
-    final formatter = DateFormat('MMM dd');
-
-    return SizedBox(
-      child: Card(
-        elevation: 2,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: InkWell(
-          onTap: () => onViewDetails(campaign),
-          child: Stack(
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 2, // Added a slight elevation for better visual
+      child: InkWell(
+        onTap: onTap,
+        child: IntrinsicHeight(
+          // Ensures the row takes the height of its tallest child
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Background image
-              Positioned.fill(
-                child: CachedNetworkImage(
-                  imageUrl: campaign.clientLogoUrl ??
-                      getPlaceholderUrl(campaign.name),
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.error),
-                  ),
-                ),
-              ),
-              // Dark overlay for better text visibility
-              Positioned.fill(
-                child: DecoratedBox(
+              // Image taking full height
+              if (campaign.clientLogoUrl != null)
+                Container(
+                  width: 160, // Reduced width for the image
+                  // height: 50, // Removed fixed height as IntrinsicHeight will manage
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.7),
-                        Colors.transparent,
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.3),
-                      ],
+                    image: DecorationImage(
+                      image: NetworkImage(campaign.clientLogoUrl!),
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-              ),
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Status and actions
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            borderRadius: BorderRadius.circular(12),
+              // Content column
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Campaign info at the top
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            campaign.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: Text(
-                            campaign.status
-                                .toString()
-                                .split('.')
-                                .last
-                                .toUpperCase(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
+                          const SizedBox(height: 4),
+                          Text(
+                            campaign.description,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 14,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${DateFormat('MMM d').format(campaign.startDate)} - ${DateFormat('MMM d, y').format(campaign.endDate)}',
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Chip(
+                            label: Text(campaign.status.name.toUpperCase()),
+                            backgroundColor:
+                                campaign.status == CampaignStatus.active
+                                    ? Colors.green.withOpacity(0.2)
+                                    : Colors.orange.withOpacity(0.2),
+                            labelStyle: TextStyle(
+                              color: campaign.status == CampaignStatus.active
+                                  ? Colors.green
+                                  : Colors.orange,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            visualDensity: VisualDensity.compact,
                           ),
-                        ),
-                        const Spacer(),
-                        // Dropdown menu
-                        PopupMenuButton<String>(
-                          icon:
-                              const Icon(Icons.more_vert, color: Colors.white),
-                          tooltip: 'Actions',
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'view',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.visibility, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('View Details'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete,
-                                      size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Delete',
-                                      style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            if (value == 'view') {
-                              onViewDetails(campaign);
-                            } else if (value == 'edit') {
-                              onEdit(campaign);
-                            } else if (value == 'delete') {
-                              onDelete(campaign.id);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    // Campaign name and dates
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          campaign.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                '${formatter.format(campaign.startDate)} - ${formatter.format(campaign.endDate)}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withOpacity(0.8),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    // Progress indicator for active campaigns
-                    if (isActive)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: _buildProgressIndicator(
-                            campaign.startDate, campaign.endDate),
+                        ],
                       ),
-                  ],
+                      // Buttons at the bottom
+                             Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Edit button
+                          SizedBox(
+                            height: 28,
+                            child: ElevatedButton(
+                              onPressed: onEdit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                minimumSize: const Size(60, 28),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              child:const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.edit, size: 14),
+                                   SizedBox(width: 4),
+                                  Text(
+                                    'Edit',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Delete button
+                          SizedBox(
+                            height: 28,
+                            child: ElevatedButton(
+                              onPressed: onDelete,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                minimumSize: const Size(70, 28),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              child:const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.delete, size: 14),
+                                   SizedBox(width: 4),
+                                  Text(
+                                    'Delete',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                 
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildProgressIndicator(DateTime start, DateTime end) {
-    final now = DateTime.now();
-    final totalDuration = end.difference(start).inDays;
-    final elapsedDuration = now.difference(start).inDays;
-    final progress = elapsedDuration / totalDuration;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Progress',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
-            Text(
-              '${(progress * 100).toStringAsFixed(0)}%',
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.white.withOpacity(0.2),
-          color: Colors.white,
-          minHeight: 3,
-          borderRadius: BorderRadius.circular(3),
-        ),
-      ],
     );
   }
 }

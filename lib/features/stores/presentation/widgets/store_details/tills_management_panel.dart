@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/stores_model.dart';
 import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_model.dart';
 import 'package:smartmedia_campaign_manager/features/stores/presentation/widgets/store_details/till_options_bottom_sheet.dart';
+import 'package:smartmedia_campaign_manager/features/stores/domain/entities/till_image.dart'; // <--- Ensure this import is present
 
 class TillsManagementPanel extends StatelessWidget {
   final Store store;
@@ -192,9 +193,8 @@ class _TillCard extends StatelessWidget {
     final isOccupied = till.isOccupied;
     final color = isOccupied ? Colors.red : Colors.green;
     final bgColor = isOccupied ? Colors.red.shade50 : Colors.green.shade50;
-    final images = till.images.isNotEmpty
-        ? till.images
-        : [];
+    // Correctly get the first image or null
+    final TillImage? displayImage = till.images.isNotEmpty ? till.images[0] : null;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -224,12 +224,12 @@ class _TillCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   // Image or placeholder
-                  images.isNotEmpty
+                  displayImage != null // Check if there's an image to display
                       ? ClipRRect(
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(12)),
                           child: CachedNetworkImage(
-                            imageUrl: images[0],
+                            imageUrl: displayImage.imageUrl, // <--- FIX IS HERE
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Container(
                               color: bgColor,
@@ -285,7 +285,7 @@ class _TillCard extends StatelessWidget {
                   ),
 
                   // Image count badge
-                  if (images.length > 1)
+                  if (till.images.length > 1) // Use till.images directly here
                     Positioned(
                       bottom: 8,
                       right: 8,
@@ -296,7 +296,7 @@ class _TillCard extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Text(
-                          '+${images.length - 1}',
+                          '+${till.images.length - 1}', // Use till.images directly here
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,

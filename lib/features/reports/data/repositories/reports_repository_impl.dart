@@ -109,18 +109,13 @@ class ReportsRepositoryImpl implements ReportsRepository {
     final occupiedTills = campaignSpecificTills.length;
     final availableTills = totalTills - occupiedTills;
 
-    // Correctly check for store images (assuming Store.imageUrl is a single string or List<String>)
-    // If Store.imageUrl is a single String URL:
     final storesWithImages = stores
         .where((store) => store.imageUrl != null && store.imageUrl!.isNotEmpty)
         .length;
-    // If Store.imageUrl is a List<String>:
-    // final storesWithImages = stores.where((store) => store.imageUrls != null && store.imageUrls!.isNotEmpty).length;
-
-    // Correctly check for till images (assuming Till.images is a List<TillImage>?)
+  
     final tillsWithImages = campaignSpecificTills.fold(
       0,
-      (sum, till) => sum + (till.images?.isNotEmpty == true ? 1 : 0),
+      (sum, till) => sum + (till.images.isNotEmpty == true ? 1 : 0),
     );
 
     final occupancyRate =
