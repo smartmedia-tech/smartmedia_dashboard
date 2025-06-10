@@ -5,7 +5,7 @@ import 'package:smartmedia_campaign_manager/features/reports/presentation/bloc/r
 import 'package:smartmedia_campaign_manager/features/reports/presentation/bloc/reports_event.dart';
 import 'package:smartmedia_campaign_manager/features/reports/presentation/widgets/reports_list.dart'; // Renamed from reports_list.dart for better naming
 
-class ReportsHistoryTab extends StatefulWidget { // Changed to StatefulWidget to manage filters
+class ReportsHistoryTab extends StatefulWidget {
   const ReportsHistoryTab({Key? key}) : super(key: key);
 
   @override
@@ -87,7 +87,7 @@ class _ReportsHistoryTabState extends State<ReportsHistoryTab> {
                 ),
               ),
               Expanded(
-                child: ReportsList(reports: filteredReports), // Pass filtered reports
+                child: ReportsList(reports: filteredReports),
               ),
             ],
           );
