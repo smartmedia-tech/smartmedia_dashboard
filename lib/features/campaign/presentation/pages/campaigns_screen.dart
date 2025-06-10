@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
+import 'package:smartmedia_campaign_manager/features/campaign/domain/usecases/upload_image.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_bloc.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_event.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/bloc/campaign_state.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/pages/campaign_details_screen.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/campaign_card.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/presentation/widgets/campaign_form.dart';
+import 'package:smartmedia_campaign_manager/injection_container.dart';
 
 class CampaignScreen extends StatefulWidget {
   const CampaignScreen({super.key});
@@ -85,7 +88,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
               ),
         ),
         ElevatedButton.icon(
-          onPressed: () => _showCreateDialog(context),
+          onPressed: () => _showCreateDialog(),
           icon: const Icon(Icons.add),
           label: const Text('New Campaign'),
         ),
@@ -172,16 +175,82 @@ class _CampaignScreenState extends State<CampaignScreen> {
             if (index >= campaigns.length) {
               return const Center(child: CircularProgressIndicator());
             }
-            return CampaignCard(
+          return CampaignCard(
               campaign: campaigns[index],
               onTap: () => _navigateToDetails(context, campaigns[index]),
+              onEdit: () => _showEditDialog(campaigns[index]),
+              onDelete: () => _showDeleteConfirmation(campaigns[index].id),
             );
           },
         );
       },
     );
   }
+void _showEditDialog(Campaign campaign) {
+    showDialog(
+      context: context,
+      builder: (_) => CampaignFormDialog(
+        campaign: campaign,
+        onSubmit: (updatedCampaign, imageFile) async {
+          if (imageFile != null) {
+            try {
+              final uploadCampaignImage = sl<UploadCampaignImage>();
+              final imageUrl = await uploadCampaignImage(
+                campaign.id,
+                imageFile,
+              );
 
+              updatedCampaign = Campaign(
+                id: updatedCampaign.id,
+                name: updatedCampaign.name,
+                description: updatedCampaign.description,
+                startDate: updatedCampaign.startDate,
+                endDate: updatedCampaign.endDate,
+                status: updatedCampaign.status,
+                clientId: updatedCampaign.clientId,
+                clientLogoUrl: imageUrl,
+              );
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to upload image: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          }
+
+          context.read<CampaignBloc>().add(UpdateCampaign(updatedCampaign));
+        },
+      ),
+    );
+  }
+
+
+  void _showDeleteConfirmation(String campaignId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Campaign'),
+        content: const Text('Are you sure you want to delete this campaign?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<CampaignBloc>().add(DeleteCampaign(campaignId));
+              Navigator.of(context).pop();
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
   void _navigateToDetails(BuildContext context, CampaignEntity campaign) {
     Navigator.push(
       context,
@@ -191,46 +260,54 @@ class _CampaignScreenState extends State<CampaignScreen> {
     );
   }
 
-void _showCreateDialog(BuildContext context) {
+  void _showCreateDialog() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (context) => CampaignFormDialog(
+      builder: (_) => CampaignFormDialog(
         onSubmit: (campaign, imageFile) async {
-          // Handle the form submission here
-          try {
-            // Example implementation:
-            // 1. Create/update campaign in your backend
-            // 2. Upload image if new file was selected
-            // 3. Refresh your campaign list
+          if (imageFile != null) {
+            try {
+              // Generate a temporary ID for new campaigns
+              final tempId = DateTime.now().millisecondsSinceEpoch.toString();
 
-            // This would call your actual campaign creation/update logic
-            // final result = await _campaignRepository.createCampaign(campaign, imageFile);
+              // Get the use case from the dependency injection system
+              final uploadCampaignImage = sl<UploadCampaignImage>();
 
-            // Show success feedback
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(campaign.id.isEmpty
-                    ? 'Campaign created successfully!'
-                    : 'Campaign updated successfully!'),
-                backgroundColor: Colors.green,
-              ),
-            );
+              // Upload the image and get URL
+              final imageUrl = await uploadCampaignImage(tempId, imageFile);
 
-            // Optionally refresh data in parent widget
-            // if (mounted) setState(() {});
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
+              // Update campaign with image URL
+              campaign = Campaign(
+                id: campaign.id,
+                name: campaign.name,
+                description: campaign.description,
+                startDate: campaign.startDate,
+                endDate: campaign.endDate,
+                status: campaign.status,
+                clientId: campaign.clientId,
+                clientLogoUrl: imageUrl,
+              );
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to upload image: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              // Continue with the campaign creation even if image upload fails
+            }
           }
+
+          // Add campaign to bloc
+          context.read<CampaignBloc>().add(AddCampaign(campaign));
         },
       ),
     );
   }
+
+
 
   @override
   void dispose() {

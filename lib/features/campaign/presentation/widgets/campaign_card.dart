@@ -1,121 +1,133 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:smartmedia_campaign_manager/features/campaign/domain/entities/campaign_entity.dart';
-
 class CampaignCard extends StatelessWidget {
   final CampaignEntity campaign;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const CampaignCard({
     super.key,
     required this.campaign,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.only(
-          bottom: 8.0), // Added for minimal spacing between cards
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding:
-              const EdgeInsets.all(12.0), // Reduced padding for compactness
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left Column: Image
-              if (campaign.clientLogoUrl != null)
-                Container(
-                  width: 80, // Fixed width for the image
-                  height: 80, // Fixed height for the image
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(
-                        8.0), // Slightly rounded corners for the image
-                    image: DecorationImage(
-                      image: NetworkImage(campaign.clientLogoUrl!),
-                      fit: BoxFit.cover,
-                    ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image taking full height
+            if (campaign.clientLogoUrl != null)
+              Container(
+                width: 100,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: NetworkImage(campaign.clientLogoUrl!),
+                    fit: BoxFit.cover,
                   ),
-                )
-              else
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Icon(Icons.business,
-                      color: Colors.grey[600]), // Placeholder icon
                 ),
-              const SizedBox(width: 12), // Spacing between image and text
-
-              // Right Column: Metadata
-              Expanded(
+              ),
+            // Content column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      campaign.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium!
-                          .copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      campaign.description,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
+                    // Campaign info at the top
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Chip(
-                          label: Text(
-                            campaign.status.name.toUpperCase(),
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10), // Smaller font for chip
-                          ),
-                          backgroundColor: _getStatusColor(campaign.status),
-                          visualDensity:
-                              VisualDensity.compact, // Compact chip size
-                        ),
-                        const Spacer(),
                         Text(
-                          '${campaign.occupiedTills}/${campaign.totalTills} tills',
+                          campaign.name,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          campaign.description,
                           style: Theme.of(context).textTheme.bodySmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${DateFormat('MMM d').format(campaign.startDate)} - ${DateFormat('MMM d, y').format(campaign.endDate)}',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Chip(
+                          label: Text(campaign.status.name.toUpperCase()),
+                          backgroundColor:
+                              campaign.status == CampaignStatus.active
+                                  ? Colors.green.withOpacity(0.2)
+                                  : Colors.orange.withOpacity(0.2),
+                          labelStyle: TextStyle(
+                            color: campaign.status == CampaignStatus.active
+                                ? Colors.green
+                                : Colors.orange,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                    // Buttons at the bottom
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 18),
+                          onPressed: onEdit,
+                          tooltip: 'Edit',
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete,
+                              size: 18, color: Colors.red),
+                          onPressed: onDelete,
+                          tooltip: 'Delete',
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Color _getStatusColor(CampaignStatus status) {
-    switch (status) {
-      case CampaignStatus.active:
-        return Colors.green;
-      case CampaignStatus.paused:
-        return Colors.orange;
-      case CampaignStatus.completed:
-        return Colors.blue;
-      case CampaignStatus.draft:
-        return Colors.grey;
-      case CampaignStatus.archived:
-        return Colors.red;
-    }
   }
 }
